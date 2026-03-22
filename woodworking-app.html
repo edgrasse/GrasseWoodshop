@@ -5,39 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>🪵 Grasse Woodshop</title>
+<title>EG Custom Woodworking</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --cream:#FAF7F2; --warm:#F2EDE4; --tan:#E8DDD0;
   --dark:#3D2B1F; --charcoal:#5C4A3A; --accent:#C4773B;
-  --green:#5A7A4E; --red:#A84040; --blue:#3B5BDB;
+  --green:#5A7A4E; --red:#A84040; --blue:#3B5BDB; --purple:#6B3FA0;
   --text:#3D2B1F; --muted:#9A8070; --border:#D9CFC4; --white:#FFFFFF;
   --shadow:0 2px 12px rgba(61,43,31,0.10); --shadow-lg:0 8px 32px rgba(61,43,31,0.14);
   --radius:10px; --radius-lg:16px;
 }
 body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--text); min-height:100vh; padding-bottom:90px; }
 
-.app-header { background:var(--dark); color:var(--cream); padding:14px 20px 10px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(0,0,0,0.2); }
-.app-header h1 { font-family:'Playfair Display',serif; font-size:21px; letter-spacing:0.3px; line-height:1; }
-.app-header .sub { font-size:11px; color:#B09880; margin-top:2px; letter-spacing:0.8px; text-transform:uppercase; }
+/* ── HEADER ── */
+.app-header { background:var(--dark); color:var(--cream); padding:12px 16px 10px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(0,0,0,0.2); }
+.header-inner { display:flex; align-items:center; gap:12px; }
+.logo-placeholder {
+  width:42px; height:42px; border-radius:50%; background:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0; border:2px solid rgba(255,255,255,0.15);
+  overflow:hidden;
+}
+.logo-placeholder img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.header-text h1 { font-family:'Playfair Display',serif; font-size:18px; letter-spacing:0.2px; line-height:1.1; }
+.header-text .sub { font-size:10px; color:#B09880; margin-top:1px; letter-spacing:0.8px; text-transform:uppercase; }
 
-.tab-nav { display:flex; background:var(--dark); border-top:1px solid rgba(255,255,255,0.08); padding:0 8px 6px; gap:4px; }
-.tab-btn { flex:1; padding:7px 4px; border:none; background:transparent; color:#9A8070; font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; cursor:pointer; border-radius:8px; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:2px; }
-.tab-btn .icon { font-size:17px; }
+/* ── TAB NAV ── */
+.tab-nav { display:flex; background:var(--dark); border-top:1px solid rgba(255,255,255,0.08); padding:0 6px 6px; gap:3px; }
+.tab-btn { flex:1; padding:7px 2px; border:none; background:transparent; color:#9A8070; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; cursor:pointer; border-radius:8px; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.tab-btn .icon { font-size:16px; }
 .tab-btn.active { background:rgba(196,119,59,0.2); color:var(--accent); }
 
+/* ── SECTIONS ── */
 .section { display:none; padding:14px; }
 .section.active { display:block; }
 
-.sub-tabs { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
-.sub-tab { padding:7px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; flex-shrink:0; }
+/* ── SUB-TABS ── */
+.sub-tabs { display:flex; gap:5px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
+.sub-tab { padding:6px 12px; border-radius:20px; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; flex-shrink:0; }
 .sub-tab.active { background:var(--accent); border-color:var(--accent); color:white; }
 
-.card { background:var(--white); border-radius:var(--radius-lg); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); border:1px solid var(--border); }
+/* ── CARDS ── */
+.card { background:var(--white); border-radius:var(--radius-lg); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); border:1px solid var(--border); }
 .card-title { font-family:'Playfair Display',serif; font-size:16px; color:var(--dark); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
 
+/* ── FORMS ── */
 .form-row { margin-bottom:12px; }
 .form-row label { display:block; font-size:11px; font-weight:600; color:var(--charcoal); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:4px; }
 input[type="text"],input[type="date"],input[type="number"],input[type="url"],select,textarea {
@@ -49,40 +63,43 @@ input:focus,select:focus,textarea:focus { outline:none; border-color:var(--accen
 textarea { resize:vertical; min-height:72px; }
 select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B6F47' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
 
-.btn { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:var(--radius); border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; text-decoration:none; }
-.btn-primary { background:var(--accent); color:white; }
-.btn-primary:hover { background:#B36A30; }
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:var(--radius); border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; text-decoration:none; justify-content:center; }
+.btn-primary   { background:var(--accent); color:white; }
 .btn-secondary { background:var(--warm); color:var(--charcoal); border:1.5px solid var(--border); }
-.btn-secondary:hover { background:var(--tan); }
-.btn-green { background:var(--green); color:white; }
-.btn-blue { background:var(--blue); color:white; }
-.btn-danger { background:var(--red); color:white; }
-.btn-sm { padding:6px 12px; font-size:12px; }
-.btn-full { width:100%; justify-content:center; }
-.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-green     { background:var(--green); color:white; }
+.btn-blue      { background:var(--blue); color:white; }
+.btn-purple    { background:var(--purple); color:white; }
+.btn-danger    { background:var(--red); color:white; }
+.btn-sm        { padding:6px 12px; font-size:12px; }
+.btn-full      { width:100%; }
+.btn:disabled  { opacity:0.5; cursor:not-allowed; }
 
-.badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:0.4px; }
-.badge-planning  { background:#EAF0FF; color:#3B5BDB; }
-.badge-active    { background:#FFF3CD; color:#946A00; }
-.badge-complete  { background:#D4F0DC; color:#2B6E3E; }
-.badge-past      { background:#F0E8FF; color:#6B3FA0; }
+/* ── BADGES ── */
+.badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:0.3px; }
+.badge-planned   { background:#F0E8FF; color:#6B3FA0; }
+.badge-progress  { background:#FFF3CD; color:#946A00; }
+.badge-completed { background:#D4F0DC; color:#2B6E3E; }
 .badge-excellent { background:#D4F0DC; color:#2B6E3E; }
 .badge-good      { background:#EAF0FF; color:#3B5BDB; }
 .badge-fair      { background:#FFF3CD; color:#946A00; }
 .badge-service   { background:#FFE0E0; color:#8B2020; }
 
+/* ── TAG CHIPS ── */
 .tag-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
 .tag-chip { padding:5px 11px; border-radius:20px; font-size:12px; font-weight:500; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); cursor:pointer; transition:all 0.18s; user-select:none; }
-.tag-chip.selected { background:var(--accent); border-color:var(--accent); color:white; }
-.tag-chip.lathe.selected { background:#5A7A4E; border-color:#5A7A4E; }
-.tag-chip.epoxy.selected { background:#3B5BDB; border-color:#3B5BDB; }
-.tag-chip.laser.selected { background:#8B2020; border-color:#8B2020; }
-.tag-chip.custom.selected { background:#6B3FA0; border-color:#6B3FA0; }
+.tag-chip.selected               { background:var(--accent);  border-color:var(--accent);  color:white; }
+.tag-chip.lathe.selected         { background:#5A7A4E; border-color:#5A7A4E; }
+.tag-chip.epoxy.selected         { background:#3B5BDB; border-color:#3B5BDB; }
+.tag-chip.laser.selected         { background:#8B2020; border-color:#8B2020; }
+.tag-chip.custom-tag.selected    { background:#6B3FA0; border-color:#6B3FA0; }
 
+/* ── TOGGLE ── */
 .toggle-row { display:flex; align-items:center; gap:10px; padding:8px 0; }
 .toggle-row label { font-size:13px; font-weight:500; color:var(--charcoal); margin:0; text-transform:none; letter-spacing:0; cursor:pointer; }
 input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
 
+/* ── SEARCH ── */
 .search-bar { position:relative; margin-bottom:10px; }
 .search-bar input { padding-left:36px; background:var(--white); }
 .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:15px; pointer-events:none; }
@@ -90,63 +107,83 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .filter-chip { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); cursor:pointer; transition:all 0.15s; }
 .filter-chip.on { background:var(--dark); border-color:var(--dark); color:white; }
 
-.proj-card { background:var(--white); border-radius:var(--radius-lg); padding:15px; margin-bottom:12px; box-shadow:var(--shadow); border:1px solid var(--border); }
-.proj-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px; }
+/* ── PROJECT CARDS ── */
+.proj-card { background:var(--white); border-radius:var(--radius-lg); padding:14px; margin-bottom:11px; box-shadow:var(--shadow); border:1px solid var(--border); }
+.proj-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:5px; }
 .proj-card-name { font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:var(--dark); }
 .proj-card-meta { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.6; }
 .proj-photo { width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid var(--border); }
-.proj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
-.proj-tag { padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:0.3px; }
+.proj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+.proj-tag { padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; }
 .ptag-lathe  { background:#E8F5E3; color:#3A6B2A; }
 .ptag-epoxy  { background:#E8EEFF; color:#2B3FA0; }
 .ptag-laser  { background:#FFE8E8; color:#8B2020; }
 .ptag-custom { background:#F0E8FF; color:#6B3FA0; }
 .lessons-box { background:var(--warm); border-radius:8px; padding:8px 10px; margin-top:8px; font-size:12px; color:var(--charcoal); line-height:1.5; }
 .ll-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent); margin-bottom:3px; }
+.proj-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
 
-.tool-row { padding:12px 0; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; gap:10px; }
-.tool-row:last-child { border-bottom:none; }
-.tool-icon-wrap { font-size:20px; width:32px; text-align:center; flex-shrink:0; }
-.tool-info { flex:1; min-width:0; }
-.tool-name { font-weight:600; font-size:14px; color:var(--dark); }
-.tool-meta { font-size:12px; color:var(--muted); margin-top:2px; word-break:break-word; }
+/* ── SECTION HEADER ── */
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.section-header h2 { font-family:'Playfair Display',serif; font-size:18px; color:var(--dark); }
 
-.maint-section { margin-top:14px; padding-top:12px; border-top:1.5px dashed var(--border); }
-.maint-log-entry { background:var(--warm); border-radius:var(--radius); padding:9px 11px; margin-bottom:7px; font-size:13px; }
-.maint-log-entry .mdate { font-size:11px; color:var(--muted); margin-bottom:2px; }
+/* ── TOOL / INVENTORY ROWS ── */
+.item-row { padding:11px 0; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; gap:10px; }
+.item-row:last-child { border-bottom:none; }
+.item-icon { font-size:20px; width:30px; text-align:center; flex-shrink:0; }
+.item-info { flex:1; min-width:0; }
+.item-name { font-weight:600; font-size:14px; color:var(--dark); }
+.item-meta { font-size:12px; color:var(--muted); margin-top:2px; word-break:break-word; }
+
+/* ── MAINTENANCE ── */
+.maint-section { margin-top:12px; padding-top:12px; border-top:1.5px dashed var(--border); }
+.maint-entry { background:var(--warm); border-radius:var(--radius); padding:9px 11px; margin-bottom:7px; font-size:13px; }
+.maint-entry .mdate { font-size:11px; color:var(--muted); margin-bottom:2px; }
 .maint-tip-box { background:linear-gradient(135deg,#F0EAE0,#FAF7F2); border:1.5px solid var(--tan); border-radius:var(--radius); padding:12px 14px; margin-top:10px; font-size:13px; line-height:1.6; color:var(--charcoal); }
-.tip-header { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; color:var(--accent); margin-bottom:6px; }
+.tip-hdr { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; color:var(--accent); margin-bottom:6px; }
 
-.collapsible-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:4px 0; }
+/* ── COLLAPSIBLE ── */
+.coll-hdr { display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:4px 0; }
 .chevron { transition:transform 0.2s; font-size:12px; }
 .chevron.open { transform:rotate(180deg); }
 
-.photo-upload-area { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:18px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--cream); }
+/* ── PHOTOS ── */
+.photo-upload-area { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:16px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--cream); }
 .photo-upload-area:hover { border-color:var(--accent); background:var(--warm); }
-.pu-icon { font-size:26px; margin-bottom:5px; }
+.pu-icon { font-size:24px; margin-bottom:4px; }
 .photo-upload-area p { font-size:13px; color:var(--muted); }
-.photo-preview-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
-.photo-thumb-wrap { position:relative; aspect-ratio:1; }
-.photo-thumb-wrap img { width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--border); }
-.photo-thumb-remove { position:absolute; top:-5px; right:-5px; width:20px; height:20px; border-radius:50%; background:var(--red); color:white; border:none; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.drive-link-section { margin-top:10px; }
-.drive-link-label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
-.drive-preview-img { width:100%; border-radius:8px; margin-top:8px; border:1px solid var(--border); max-height:200px; object-fit:cover; }
+.photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:9px; }
+.thumb-wrap { position:relative; aspect-ratio:1; }
+.thumb-wrap img { width:100%; height:100%; object-fit:cover; border-radius:7px; border:1px solid var(--border); }
+.thumb-rm { position:absolute; top:-5px; right:-5px; width:19px; height:19px; border-radius:50%; background:var(--red); color:white; border:none; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.drive-sec { margin-top:10px; }
+.drive-lbl { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.drive-prev { width:100%; border-radius:8px; margin-top:8px; border:1px solid var(--border); max-height:200px; object-fit:cover; }
 
-.scan-area { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--cream); }
+/* ── SCAN ── */
+.scan-area { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:18px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--cream); }
 .scan-area:hover { border-color:var(--accent); background:var(--warm); }
-.scan-icon { font-size:28px; margin-bottom:6px; }
+.scan-icon { font-size:26px; margin-bottom:5px; }
 
-.bulk-loc-bar { background:var(--dark); color:var(--cream); border-radius:var(--radius-lg); padding:12px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
-.bulk-loc-bar .loc-label { font-size:11px; color:#B09880; margin-bottom:2px; }
-.bulk-loc-bar .loc-name { font-size:14px; font-weight:600; }
+/* ── BULK SCAN BAR ── */
+.bulk-bar { background:var(--dark); color:var(--cream); border-radius:var(--radius-lg); padding:12px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+.bulk-bar .blbl { font-size:10px; color:#B09880; margin-bottom:2px; }
+.bulk-bar .bname { font-size:13px; font-weight:600; }
 
-.chat-messages { background:var(--warm); border-radius:var(--radius); padding:12px; min-height:200px; max-height:400px; overflow-y:auto; margin-bottom:10px; border:1px solid var(--border); }
+/* ── INVENTORY ITEM CARD ── */
+.inv-card { background:var(--white); border-radius:var(--radius-lg); padding:13px; margin-bottom:10px; box-shadow:var(--shadow); border:1px solid var(--border); display:flex; align-items:flex-start; gap:10px; }
+.inv-icon { font-size:22px; flex-shrink:0; }
+.inv-body { flex:1; }
+.inv-name { font-weight:600; font-size:14px; color:var(--dark); }
+.inv-meta { font-size:12px; color:var(--muted); margin-top:2px; line-height:1.5; }
+
+/* ── CHAT ── */
+.chat-messages { background:var(--warm); border-radius:var(--radius); padding:12px; min-height:200px; max-height:380px; overflow-y:auto; margin-bottom:10px; border:1px solid var(--border); }
 .chat-msg { margin-bottom:12px; animation:fadeIn 0.3s ease; }
 .chat-msg.user { text-align:right; }
 .chat-bubble { display:inline-block; max-width:86%; padding:10px 14px; border-radius:14px; font-size:14px; line-height:1.5; text-align:left; }
 .chat-msg.user .chat-bubble { background:var(--accent); color:white; border-bottom-right-radius:4px; }
-.chat-msg.ai .chat-bubble { background:var(--white); color:var(--text); border-bottom-left-radius:4px; box-shadow:var(--shadow); }
+.chat-msg.ai   .chat-bubble { background:var(--white); color:var(--text); border-bottom-left-radius:4px; box-shadow:var(--shadow); }
 .chat-msg .sender { font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
 .chat-msg.user .sender { color:var(--accent); }
 .chat-input-area { display:flex; flex-direction:column; gap:8px; }
@@ -154,91 +191,120 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .chat-input-row textarea { flex:1; min-height:44px; max-height:120px; resize:none; border-radius:var(--radius); padding:11px 14px; }
 .send-btn { width:44px; height:44px; border-radius:var(--radius); border:none; background:var(--accent); color:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .photo-attach-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.photo-label { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:var(--radius); background:var(--warm); border:1.5px solid var(--border); font-size:13px; font-weight:500; color:var(--charcoal); cursor:pointer; }
-.chat-photo-thumb { width:36px; height:36px; border-radius:6px; object-fit:cover; border:1.5px solid var(--border); }
+.photo-label { display:flex; align-items:center; gap:5px; padding:7px 12px; border-radius:var(--radius); background:var(--warm); border:1.5px solid var(--border); font-size:13px; font-weight:500; color:var(--charcoal); cursor:pointer; }
+.chat-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; border:1.5px solid var(--border); }
 .clear-photo { font-size:11px; color:var(--muted); cursor:pointer; text-decoration:underline; }
 
+/* ── STATUS BAR ── */
 .status-bar { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--dark); color:var(--cream); padding:10px 20px; border-radius:30px; font-size:13px; font-weight:500; box-shadow:var(--shadow-lg); z-index:200; opacity:0; transition:opacity 0.3s; pointer-events:none; max-width:88%; text-align:center; }
 .status-bar.show { opacity:1; }
 .status-bar.err  { background:var(--red); }
 .status-bar.ok   { background:var(--green); }
 
+/* ── MODAL ── */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.52); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.2s ease; }
 .modal-box { background:var(--white); border-radius:var(--radius-lg); padding:22px; width:100%; max-width:420px; box-shadow:var(--shadow-lg); max-height:85vh; overflow-y:auto; }
 .modal-box h3 { font-family:'Playfair Display',serif; font-size:18px; margin-bottom:10px; }
 .modal-box p { font-size:13px; color:var(--muted); margin-bottom:14px; }
 
+/* ── MISC ── */
 .spinner { display:inline-block; width:15px; height:15px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; }
 .spinner.dark { border-color:rgba(61,43,31,0.2); border-top-color:var(--accent); }
-
 .empty-state { text-align:center; padding:28px 16px; color:var(--muted); }
 .empty-state .ei { font-size:36px; margin-bottom:8px; }
 .empty-state p { font-size:14px; line-height:1.6; }
+.divider { height:1px; background:var(--border); margin:12px 0; }
 
-.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.section-header h2 { font-family:'Playfair Display',serif; font-size:19px; color:var(--dark); }
-
-@keyframes spin { to { transform:rotate(360deg); } }
-@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes spin    { to { transform:rotate(360deg); } }
+@keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
 @media (min-width:500px) {
-  body, .app-header, .tab-nav { max-width:480px; margin-left:auto; margin-right:auto; }
+  body,.app-header,.tab-nav { max-width:480px; margin-left:auto; margin-right:auto; }
 }
 </style>
 </head>
 <body>
 
+<!-- ═══ HEADER ═══ -->
 <div class="app-header">
-  <h1>🪵 Grasse Woodshop</h1>
-  <div class="sub">Workshop Assistant</div>
+  <div class="header-inner">
+    <div class="logo-placeholder" id="logo-wrap">
+      <!-- Replace contents with: <img src="your-logo.png" alt="EG Logo"> when ready -->
+      🪵
+    </div>
+    <div class="header-text">
+      <h1>EG Custom Woodworking</h1>
+      <div class="sub">Workshop Assistant</div>
+    </div>
+  </div>
 </div>
 <div class="tab-nav">
-  <button class="tab-btn active" onclick="showTab('projects')" id="tab-projects"><span class="icon">🪵</span>Projects</button>
-  <button class="tab-btn" onclick="showTab('tools')" id="tab-tools"><span class="icon">🔧</span>Tools</button>
-  <button class="tab-btn" onclick="showTab('advisor')" id="tab-advisor"><span class="icon">🤖</span>Advisor</button>
+  <button class="tab-btn active" onclick="showTab('projects')"  id="tab-projects"><span class="icon">🪵</span>Projects</button>
+  <button class="tab-btn"        onclick="showTab('shop')"      id="tab-shop"><span class="icon">🔧</span>Shop</button>
+  <button class="tab-btn"        onclick="showTab('advisor')"   id="tab-advisor"><span class="icon">🤖</span>Advisor</button>
 </div>
 
-<!-- ═══════════════════════ PROJECTS ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     PROJECTS TAB
+═══════════════════════════════════════════ -->
 <div class="section active" id="section-projects">
   <div class="sub-tabs">
-    <button class="sub-tab active" onclick="showPTab('active')"    id="ptab-active">⚡ Active</button>
+    <button class="sub-tab active" onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
+    <button class="sub-tab"        onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
+    <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Completed</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
-    <button class="sub-tab"        onclick="showPTab('past')"      id="ptab-past">📚 Past</button>
-    <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
   </div>
 
-  <!-- Active -->
-  <div id="psub-active">
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-active" placeholder="Search active projects..." oninput="renderPList('active')"></div>
-    <div id="plist-active"></div>
+  <!-- PLANNED -->
+  <div id="psub-planned">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-planned" placeholder="Search planned projects..." oninput="renderPList('planned')"></div>
+    <div class="filter-chips">
+      <span class="filter-chip" data-f="Lathe"         data-list="planned" onclick="toggleFilter(this)">🪵 Lathe</span>
+      <span class="filter-chip" data-f="Epoxy"         data-list="planned" onclick="toggleFilter(this)">🔵 Epoxy</span>
+      <span class="filter-chip" data-f="Laser Etching" data-list="planned" onclick="toggleFilter(this)">⚡ Laser</span>
+    </div>
+    <div id="plist-planned"></div>
   </div>
 
-  <!-- Add / Edit Form -->
+  <!-- IN PROGRESS -->
+  <div id="psub-progress" style="display:none;">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-progress" placeholder="Search active projects..." oninput="renderPList('progress')"></div>
+    <div class="filter-chips">
+      <span class="filter-chip" data-f="Lathe"         data-list="progress" onclick="toggleFilter(this)">🪵 Lathe</span>
+      <span class="filter-chip" data-f="Epoxy"         data-list="progress" onclick="toggleFilter(this)">🔵 Epoxy</span>
+      <span class="filter-chip" data-f="Laser Etching" data-list="progress" onclick="toggleFilter(this)">⚡ Laser</span>
+    </div>
+    <div id="plist-progress"></div>
+  </div>
+
+  <!-- COMPLETED -->
+  <div id="psub-completed" style="display:none;">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-completed" placeholder="Search completed projects..." oninput="renderPList('completed')"></div>
+    <div class="filter-chips">
+      <span class="filter-chip" data-f="Lathe"         data-list="completed" onclick="toggleFilter(this)">🪵 Lathe</span>
+      <span class="filter-chip" data-f="Epoxy"         data-list="completed" onclick="toggleFilter(this)">🔵 Epoxy</span>
+      <span class="filter-chip" data-f="Laser Etching" data-list="completed" onclick="toggleFilter(this)">⚡ Laser</span>
+    </div>
+    <div id="plist-completed"></div>
+  </div>
+
+  <!-- ADD / EDIT FORM -->
   <div id="psub-add" style="display:none;">
     <div class="card">
-      <div class="card-title" id="pform-title">📋 New Project</div>
-
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button class="btn btn-sm" id="ptype-new"  onclick="setPType('new')"  style="flex:1;justify-content:center;background:var(--accent);color:white;">⚡ New / Active</button>
-        <button class="btn btn-secondary btn-sm" id="ptype-past" onclick="setPType('past')" style="flex:1;justify-content:center;">📚 Past Project</button>
-      </div>
-      <input type="hidden" id="p-type" value="new">
+      <div class="card-title" id="pform-title">📋 Add Project</div>
       <input type="hidden" id="p-edit-id" value="">
 
       <div class="form-row"><label>Project Name *</label><input type="text" id="p-name" placeholder="e.g. Walnut Coffee Table"></div>
-      <div class="form-row"><label>Description</label><textarea id="p-desc" placeholder="What are you building?"></textarea></div>
+      <div class="form-row"><label>Description</label><textarea id="p-desc" placeholder="What are you building? Who is it for?"></textarea></div>
       <div class="form-row"><label>Wood Species</label><input type="text" id="p-wood" placeholder="e.g. White Oak, Walnut, Cherry"></div>
       <div class="form-row"><label>Dimensions</label><input type="text" id="p-dims" placeholder='e.g. 48" × 24" × 18"'></div>
 
-      <div class="form-row" id="p-year-row" style="display:none;"><label>Year Built</label><input type="text" id="p-year" placeholder="e.g. 2019" maxlength="4"></div>
-
-      <div class="form-row" id="p-status-row"><label>Status</label>
+      <div class="form-row"><label>Status</label>
         <select id="p-status" onchange="onStatusChg()">
-          <option value="Planning">Planning</option>
+          <option value="Planned">Planned</option>
           <option value="In Progress">In Progress</option>
-          <option value="Complete">Complete</option>
+          <option value="Completed">Completed</option>
         </select>
       </div>
-
       <div class="form-row" id="p-lessons-row" style="display:none;"><label>Lessons Learned</label><textarea id="p-lessons" placeholder="What worked? What would you do differently?"></textarea></div>
 
       <div class="form-row"><label>Made For</label>
@@ -261,194 +327,251 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 
       <div class="form-row">
         <label>Tools Used</label>
-        <div id="tool-chips" class="tag-row"><em style="font-size:12px;color:var(--muted);">Add tools to inventory first</em></div>
+        <div id="tool-chips" class="tag-row"><em style="font-size:12px;color:var(--muted);">Add tools to Shop first</em></div>
         <input type="text" id="p-tool-notes" placeholder="Additional tool notes..." style="margin-top:8px;">
       </div>
 
       <div class="form-row">
         <label>Project Photos</label>
-        <div class="photo-upload-area" onclick="document.getElementById('p-photo-input').click()">
+        <div class="photo-upload-area" onclick="$(\'p-photo-input\').click()">
           <div class="pu-icon">📷</div><p>Tap to take photo or choose from library</p>
         </div>
         <input type="file" id="p-photo-input" accept="image/*" multiple style="display:none" onchange="onProjPhotos(event)">
-        <div id="p-photo-grid" class="photo-preview-grid"></div>
+        <div id="p-photo-grid" class="photo-grid"></div>
         <div id="p-drive-save-row" style="display:none;margin-top:8px;">
           <button class="btn btn-blue btn-sm" onclick="shareProjPhotos()">💾 Save Photos to Drive</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:8px;">Then paste link below</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:6px;">Then paste link below</span>
         </div>
-        <div class="drive-link-section">
-          <div class="drive-link-label">Or paste Google Drive link</div>
+        <div class="drive-sec">
+          <div class="drive-lbl">Or paste Google Drive link</div>
           <input type="url" id="p-drive-link" placeholder="https://drive.google.com/..." oninput="onDriveLink('p')">
-          <img id="p-drive-preview" class="drive-preview-img" style="display:none;">
+          <img id="p-drive-prev" class="drive-prev" style="display:none;">
         </div>
       </div>
 
       <div class="form-row"><label>Notes</label><textarea id="p-notes" placeholder="Any other notes..."></textarea></div>
-
       <button class="btn btn-primary btn-full" onclick="saveProject()">💾 Save Project</button>
     </div>
   </div>
-
-  <!-- Past -->
-  <div id="psub-past" style="display:none;">
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-past" placeholder="Search past projects..." oninput="renderPList('past')"></div>
-    <div class="filter-chips">
-      <span class="filter-chip" data-f="Lathe"         data-list="past" onclick="toggleFilter(this)">🪵 Lathe</span>
-      <span class="filter-chip" data-f="Epoxy"         data-list="past" onclick="toggleFilter(this)">🔵 Epoxy</span>
-      <span class="filter-chip" data-f="Laser Etching" data-list="past" onclick="toggleFilter(this)">⚡ Laser</span>
-    </div>
-    <div id="plist-past"></div>
-  </div>
-
-  <!-- Completed -->
-  <div id="psub-completed" style="display:none;">
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-completed" placeholder="Search completed projects..." oninput="renderPList('completed')"></div>
-    <div class="filter-chips">
-      <span class="filter-chip" data-f="Lathe"         data-list="completed" onclick="toggleFilter(this)">🪵 Lathe</span>
-      <span class="filter-chip" data-f="Epoxy"         data-list="completed" onclick="toggleFilter(this)">🔵 Epoxy</span>
-      <span class="filter-chip" data-f="Laser Etching" data-list="completed" onclick="toggleFilter(this)">⚡ Laser</span>
-    </div>
-    <div id="plist-completed"></div>
-  </div>
 </div>
 
-<!-- ═══════════════════════ TOOLS ═══════════════════════ -->
-<div class="section" id="section-tools">
+<!-- ═══════════════════════════════════════════
+     SHOP TAB (Tools + Inventory)
+═══════════════════════════════════════════ -->
+<div class="section" id="section-shop">
   <div class="sub-tabs">
-    <button class="sub-tab active" onclick="showTTab('inventory')" id="ttab-inventory">🔧 Inventory</button>
-    <button class="sub-tab"        onclick="showTTab('add')"       id="ttab-add">➕ Add Tool</button>
-    <button class="sub-tab"        onclick="showTTab('bulk')"      id="ttab-bulk">📍 Bulk Scan</button>
+    <button class="sub-tab active" onclick="showSTab('tools')"    id="stab-tools">🔧 Tools</button>
+    <button class="sub-tab"        onclick="showSTab('inventory')" id="stab-inventory">📦 Inventory</button>
+    <button class="sub-tab"        onclick="showSTab('add')"       id="stab-add">➕ Add New</button>
+    <button class="sub-tab"        onclick="showSTab('bulk')"      id="stab-bulk">📍 Bulk Scan</button>
   </div>
 
-  <!-- Inventory -->
-  <div id="tsub-inventory">
+  <!-- TOOLS LIST -->
+  <div id="ssub-tools">
     <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-tools" placeholder="Search tools..." oninput="renderToolList()"></div>
-    <div class="section-header"><h2>My Tools</h2><span id="tool-count" style="font-size:13px;color:var(--muted);"></span></div>
+    <div class="section-header"><h2>Tools</h2><span id="tool-count" style="font-size:13px;color:var(--muted);"></span></div>
     <div id="tool-list"></div>
   </div>
 
-  <!-- Add Tool -->
-  <div id="tsub-add" style="display:none;">
-    <div class="card">
-      <div class="card-title">📷 Scan Tool Label</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Photo of the tool or its label — AI auto-fills the form below.</p>
-      <div class="scan-area" onclick="document.getElementById('scan-file').click()">
-        <div class="scan-icon">📸</div><p>Tap to take photo or choose from library</p>
+  <!-- INVENTORY LIST -->
+  <div id="ssub-inventory" style="display:none;">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-inv" placeholder="Search inventory..." oninput="renderInvList()"></div>
+    <div class="section-header"><h2>Inventory</h2><span id="inv-count" style="font-size:13px;color:var(--muted);"></span></div>
+    <div id="inv-list"></div>
+  </div>
+
+  <!-- ADD NEW (Tool or Inventory) -->
+  <div id="ssub-add" style="display:none;">
+
+    <!-- Type selector -->
+    <div class="card" style="padding:14px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" id="add-type-tool" onclick="setAddType('tool')" style="flex:1;">🔧 Add Tool</button>
+        <button class="btn btn-secondary btn-sm" id="add-type-inv" onclick="setAddType('inv')"  style="flex:1;">📦 Add Inventory</button>
       </div>
-      <input type="file" id="scan-file" accept="image/*" style="display:none" onchange="scanToolPhoto(event)">
-      <div id="scan-status" style="margin-top:8px;font-size:13px;color:var(--muted);"></div>
     </div>
 
-    <div class="card">
-      <div class="card-title">🔧 Tool Details</div>
-
-      <div class="form-row"><label>Category</label>
-        <select id="t-category">
-          <option value="Power Tools">Power Tools</option>
-          <option value="Hand Tools">Hand Tools</option>
-          <option value="Measuring & Layout">Measuring & Layout</option>
-          <option value="Finishing">Finishing</option>
-          <option value="Clamps & Workholding">Clamps & Workholding</option>
-          <option value="Safety">Safety</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="form-row"><label>Tool Name *</label><input type="text" id="t-name" placeholder="e.g. Band Saw"></div>
-      <div class="form-row"><label>Brand</label><input type="text" id="t-brand" placeholder="e.g. Powermatic"></div>
-      <div class="form-row"><label>Model Number</label><input type="text" id="t-model" placeholder="e.g. PM2415"></div>
-      <div class="form-row"><label>Serial Number</label><input type="text" id="t-serial"></div>
-      <div class="form-row"><label>Purchase Date</label><input type="date" id="t-date"></div>
-      <div class="form-row"><label>Purchase Price ($)</label><input type="number" id="t-price" placeholder="0.00" min="0" step="0.01"></div>
-
-      <div class="form-row"><label>Shop Location</label>
-        <select id="t-location" onchange="onLocChg('t')">
-          <option value="">Select location...</option>
-          <option value="Garage">Garage</option>
-          <option value="Main Shop Bench">Main Shop Bench</option>
-          <option value="Back Shop Bench">Back Shop Bench</option>
-          <option value="Tall Cabinet">Tall Cabinet</option>
-          <option value="Third Shop Bench - Top">Third Shop Bench – Top</option>
-          <option value="Third Shop Bench - Drawer">Third Shop Bench – Drawer…</option>
-          <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
-          <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
-          <option value="Tool Wall">Tool Wall</option>
-          <option value="Back Bench Wall">Back Bench Wall</option>
-          <option value="Lathe Wall">Lathe Wall</option>
-          <option value="Upper Shelf">Upper Shelf</option>
-        </select>
-      </div>
-      <div class="form-row" id="t-third-row" style="display:none;"><label>Third Shop Bench — Drawer</label>
-        <select id="t-third">
-          <optgroup label="Left Side">
-            <option value="Drawer 1 (Left, Top)">Drawer 1 – Left Top</option>
-            <option value="Drawer 2 (Left, Middle)">Drawer 2 – Left Middle</option>
-            <option value="Drawer 3 (Left, Bottom)">Drawer 3 – Left Bottom</option>
-          </optgroup>
-          <optgroup label="Right Side">
-            <option value="Drawer 4 (Right, Top)">Drawer 4 – Right Top</option>
-            <option value="Drawer 5 (Right, Middle)">Drawer 5 – Right Middle</option>
-            <option value="Drawer 6 (Right, Bottom)">Drawer 6 – Right Bottom</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="form-row" id="t-craftsman-row" style="display:none;"><label>Craftsman Shop Bench — Drawer</label>
-        <select id="t-craftsman">
-          <option value="Drawer 1 (Top)">Drawer 1 – Top</option>
-          <option value="Drawer 2 (Middle)">Drawer 2 – Middle</option>
-          <option value="Drawer 3 (Bottom)">Drawer 3 – Bottom</option>
-        </select>
-      </div>
-
-      <div class="form-row"><label>Manual / Documentation Link</label><input type="url" id="t-manual" placeholder="Paste URL"></div>
-      <div class="form-row"><label>Condition</label>
-        <select id="t-condition">
-          <option value="Excellent">Excellent</option>
-          <option value="Good">Good</option>
-          <option value="Fair">Fair</option>
-          <option value="Needs Service">Needs Service</option>
-        </select>
-      </div>
-      <div class="form-row"><label>Notes</label><textarea id="t-notes" placeholder="Accessories, quirks, details..."></textarea></div>
-
-      <div class="form-row">
-        <label>Tool Photo</label>
-        <div class="photo-upload-area" onclick="document.getElementById('t-photo-input').click()">
-          <div class="pu-icon">📷</div><p>Tap to take photo or choose from library</p>
+    <!-- TOOL FORM -->
+    <div id="add-tool-form">
+      <div class="card">
+        <div class="card-title">📷 Scan Tool Label</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Photo of the tool or its label — AI auto-fills the form below.</p>
+        <div class="scan-area" onclick="document.getElementById('scan-file').click()">
+          <div class="scan-icon">📸</div><p>Tap to take photo or choose from library</p>
         </div>
-        <input type="file" id="t-photo-input" accept="image/*" style="display:none" onchange="onToolPhoto(event)">
-        <div id="t-photo-wrap" style="display:none;margin-top:10px;">
-          <img id="t-photo-preview" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
-          <button class="btn btn-blue btn-sm" style="margin-top:8px;" onclick="shareToolPhoto()">💾 Save to Drive</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:6px;">Then paste link below</span>
-        </div>
-        <div class="drive-link-section">
-          <div class="drive-link-label">Google Drive link</div>
-          <input type="url" id="t-drive-link" placeholder="https://drive.google.com/..." oninput="onDriveLink('t')">
-          <img id="t-drive-preview" class="drive-preview-img" style="display:none;">
-        </div>
+        <input type="file" id="scan-file" accept="image/*" style="display:none" onchange="scanToolPhoto(event)">
+        <div id="scan-status" style="margin-top:8px;font-size:13px;color:var(--muted);"></div>
       </div>
 
-      <div class="toggle-row">
-        <input type="checkbox" id="t-maint-toggle" onchange="toggleMaintSec()">
-        <label for="t-maint-toggle">📋 Include Maintenance Log for this tool</label>
-      </div>
-      <div id="t-maint-sec" class="maint-section" style="display:none;">
-        <div class="form-row"><label>Initial Maintenance Note</label><textarea id="t-maint-note" placeholder="e.g. Replaced blade, cleaned table, lubricated fence..."></textarea></div>
-        <button class="btn btn-secondary btn-sm" id="maint-tip-btn" onclick="getMaintTip()">🤖 Get AI Maintenance Schedule</button>
-        <div id="maint-tip-result"></div>
-      </div>
+      <div class="card">
+        <div class="card-title">🔧 Tool Details</div>
+        <div class="form-row"><label>Category</label>
+          <select id="t-category">
+            <option value="Power Tools">Power Tools</option>
+            <option value="Hand Tools">Hand Tools</option>
+            <option value="Measuring & Layout">Measuring & Layout</option>
+            <option value="Finishing">Finishing</option>
+            <option value="Clamps & Workholding">Clamps & Workholding</option>
+            <option value="Safety">Safety</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Tool Name *</label><input type="text" id="t-name" placeholder="e.g. Band Saw"></div>
+        <div class="form-row"><label>Brand</label><input type="text" id="t-brand" placeholder="e.g. Powermatic"></div>
+        <div class="form-row"><label>Model Number</label><input type="text" id="t-model"></div>
+        <div class="form-row"><label>Serial Number</label><input type="text" id="t-serial"></div>
+        <div class="form-row"><label>Purchase Date</label><input type="date" id="t-date"></div>
+        <div class="form-row"><label>Purchase Price ($)</label><input type="number" id="t-price" placeholder="0.00" min="0" step="0.01"></div>
 
-      <div style="height:8px;"></div>
-      <button class="btn btn-primary btn-full" onclick="saveTool()">💾 Save Tool</button>
+        <div class="form-row"><label>Shop Location</label>
+          <select id="t-location" onchange="onLocChg('t')">
+            <option value="">Select location...</option>
+            <option value="Garage">Garage</option>
+            <option value="Main Shop Bench">Main Shop Bench</option>
+            <option value="Back Shop Bench">Back Shop Bench</option>
+            <option value="Tall Cabinet">Tall Cabinet</option>
+            <option value="Third Shop Bench - Top">Third Shop Bench – Top</option>
+            <option value="Third Shop Bench - Drawer">Third Shop Bench – Drawer…</option>
+            <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
+            <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
+            <option value="Tool Wall">Tool Wall</option>
+            <option value="Back Bench Wall">Back Bench Wall</option>
+            <option value="Lathe Wall">Lathe Wall</option>
+            <option value="Upper Shelf">Upper Shelf</option>
+          </select>
+        </div>
+        <div class="form-row" id="t-third-row" style="display:none;"><label>Third Shop Bench — Drawer</label>
+          <select id="t-third">
+            <optgroup label="Left Side">
+              <option value="Drawer 1 (Left, Top)">Drawer 1 – Left Top</option>
+              <option value="Drawer 2 (Left, Middle)">Drawer 2 – Left Middle</option>
+              <option value="Drawer 3 (Left, Bottom)">Drawer 3 – Left Bottom</option>
+            </optgroup>
+            <optgroup label="Right Side">
+              <option value="Drawer 4 (Right, Top)">Drawer 4 – Right Top</option>
+              <option value="Drawer 5 (Right, Middle)">Drawer 5 – Right Middle</option>
+              <option value="Drawer 6 (Right, Bottom)">Drawer 6 – Right Bottom</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-row" id="t-craftsman-row" style="display:none;"><label>Craftsman Shop Bench — Drawer</label>
+          <select id="t-craftsman">
+            <option value="Drawer 1 (Top)">Drawer 1 – Top</option>
+            <option value="Drawer 2 (Middle)">Drawer 2 – Middle</option>
+            <option value="Drawer 3 (Bottom)">Drawer 3 – Bottom</option>
+          </select>
+        </div>
+
+        <div class="form-row"><label>Manual / Documentation Link</label><input type="url" id="t-manual" placeholder="Paste URL"></div>
+        <div class="form-row"><label>Condition</label>
+          <select id="t-condition">
+            <option value="Excellent">Excellent</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Needs Service">Needs Service</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Notes</label><textarea id="t-notes" placeholder="Accessories, quirks, details..."></textarea></div>
+
+        <div class="form-row">
+          <label>Tool Photo</label>
+          <div class="photo-upload-area" onclick="document.getElementById('t-photo-input').click()">
+            <div class="pu-icon">📷</div><p>Tap to take photo or choose from library</p>
+          </div>
+          <input type="file" id="t-photo-input" accept="image/*" style="display:none" onchange="onToolPhoto(event)">
+          <div id="t-photo-wrap" style="display:none;margin-top:10px;">
+            <img id="t-photo-prev" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+              <button class="btn btn-blue btn-sm" onclick="shareToolPhoto()">💾 Save to Drive</button>
+              <span style="font-size:11px;color:var(--muted);">Then paste link below</span>
+            </div>
+          </div>
+          <div class="drive-sec">
+            <div class="drive-lbl">Google Drive link</div>
+            <input type="url" id="t-drive-link" placeholder="https://drive.google.com/..." oninput="onDriveLink('t')">
+            <img id="t-drive-prev" class="drive-prev" style="display:none;">
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <input type="checkbox" id="t-maint-toggle" onchange="toggleMaintSec()">
+          <label for="t-maint-toggle">📋 Include Maintenance Log for this tool</label>
+        </div>
+        <div id="t-maint-sec" class="maint-section" style="display:none;">
+          <div class="form-row"><label>Initial Maintenance Note</label><textarea id="t-maint-note" placeholder="e.g. Replaced blade, cleaned table, lubricated fence..."></textarea></div>
+          <button class="btn btn-secondary btn-sm" id="maint-tip-btn" onclick="getMaintTip()">🤖 Get AI Maintenance Schedule</button>
+          <div id="maint-tip-result"></div>
+        </div>
+
+        <div style="height:8px;"></div>
+        <button class="btn btn-primary btn-full" onclick="saveTool()">💾 Save Tool</button>
+      </div>
+    </div>
+
+    <!-- INVENTORY FORM -->
+    <div id="add-inv-form" style="display:none;">
+      <div class="card">
+        <div class="card-title">📦 Add Inventory Item</div>
+        <div class="form-row"><label>Item Name *</label><input type="text" id="i-name" placeholder="e.g. Picture Hangers, 2&quot; Brad Nails"></div>
+        <div class="form-row"><label>Category</label>
+          <select id="i-category">
+            <option value="Fasteners">Fasteners</option>
+            <option value="Hanging Hardware">Hanging Hardware</option>
+            <option value="Sandpaper & Abrasives">Sandpaper & Abrasives</option>
+            <option value="Finishing Supplies">Finishing Supplies</option>
+            <option value="Wood & Sheet Goods">Wood & Sheet Goods</option>
+            <option value="Miscellaneous">Miscellaneous</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Location</label>
+          <select id="i-location" onchange="onLocChg('i')">
+            <option value="">Select location...</option>
+            <option value="Garage">Garage</option>
+            <option value="Main Shop Bench">Main Shop Bench</option>
+            <option value="Back Shop Bench">Back Shop Bench</option>
+            <option value="Tall Cabinet">Tall Cabinet</option>
+            <option value="Third Shop Bench - Top">Third Shop Bench – Top</option>
+            <option value="Third Shop Bench - Drawer">Third Shop Bench – Drawer…</option>
+            <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
+            <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
+            <option value="Tool Wall">Tool Wall</option>
+            <option value="Back Bench Wall">Back Bench Wall</option>
+            <option value="Lathe Wall">Lathe Wall</option>
+            <option value="Upper Shelf">Upper Shelf</option>
+          </select>
+        </div>
+        <div class="form-row" id="i-third-row" style="display:none;"><label>Third Shop Bench — Drawer</label>
+          <select id="i-third">
+            <optgroup label="Left Side">
+              <option value="Drawer 1 (Left, Top)">Drawer 1 – Left Top</option>
+              <option value="Drawer 2 (Left, Middle)">Drawer 2 – Left Middle</option>
+              <option value="Drawer 3 (Left, Bottom)">Drawer 3 – Left Bottom</option>
+            </optgroup>
+            <optgroup label="Right Side">
+              <option value="Drawer 4 (Right, Top)">Drawer 4 – Right Top</option>
+              <option value="Drawer 5 (Right, Middle)">Drawer 5 – Right Middle</option>
+              <option value="Drawer 6 (Right, Bottom)">Drawer 6 – Right Bottom</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-row" id="i-craftsman-row" style="display:none;"><label>Craftsman Shop Bench — Drawer</label>
+          <select id="i-craftsman">
+            <option value="Drawer 1 (Top)">Drawer 1 – Top</option>
+            <option value="Drawer 2 (Middle)">Drawer 2 – Middle</option>
+            <option value="Drawer 3 (Bottom)">Drawer 3 – Bottom</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Notes</label><textarea id="i-notes" placeholder="Quantity, specs, any details..."></textarea></div>
+        <button class="btn btn-primary btn-full" onclick="saveInvItem()">💾 Save Item</button>
+      </div>
     </div>
   </div>
 
-  <!-- Bulk Scan -->
-  <div id="tsub-bulk" style="display:none;">
+  <!-- BULK SCAN -->
+  <div id="ssub-bulk" style="display:none;">
     <div class="card">
       <div class="card-title">📍 Bulk Scan by Location</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Pick a location, then take one photo per tool. AI identifies each and adds it to your inventory.</p>
-
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Pick a location, take one photo per tool. AI identifies each one and adds it to your tool inventory.</p>
       <div class="form-row"><label>Location to Scan</label>
         <select id="b-location" onchange="onLocChg('b')">
           <option value="">Select location...</option>
@@ -487,10 +610,9 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <option value="Drawer 3 (Bottom)">Drawer 3 – Bottom</option>
         </select>
       </div>
-
       <div id="bulk-ready" style="display:none;">
-        <div class="bulk-loc-bar">
-          <div><div class="loc-label">📍 Scanning location</div><div class="loc-name" id="bulk-loc-name">—</div></div>
+        <div class="bulk-bar">
+          <div><div class="blbl">📍 Scanning location</div><div class="bname" id="bulk-loc-name">—</div></div>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('b-photo').click()">📷 Take Photo</button>
         </div>
         <input type="file" id="b-photo" accept="image/*" style="display:none" onchange="bulkScan(event)">
@@ -500,16 +622,18 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 </div>
 
-<!-- ═══════════════════════ ADVISOR ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     ADVISOR TAB
+═══════════════════════════════════════════ -->
 <div class="section" id="section-advisor">
   <div class="card">
     <div class="card-title">🤖 AI Woodworking Advisor</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Powered by Claude · Knows your tools & project history · Skill: Intermediate</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Powered by Claude · Knows your tools &amp; project history · Skill: Intermediate</p>
     <div class="chat-messages" id="chat-messages">
       <div class="chat-msg ai">
         <div class="sender">Advisor</div>
         <div class="chat-bubble">
-          👋 Hi! I'm your woodworking advisor. I know your full tool inventory and project history, so my advice is tailored to your shop and skill level.<br><br>
+          👋 Hi! I'm your EG Custom Woodworking advisor. I know your full tool inventory and project history — my advice is tailored to your shop and skill level.<br><br>
           Ask me about:<br>
           • Wood species, grain &amp; defects<br>
           • Project planning &amp; joinery<br>
@@ -522,7 +646,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <div class="photo-attach-row">
         <label class="photo-label" for="chat-photo-input">📷 Attach Photo</label>
         <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onChatPhoto(event)">
-        <img id="chat-thumb" class="chat-photo-thumb" style="display:none;">
+        <img id="chat-thumb" class="chat-thumb" style="display:none;">
         <span id="chat-photo-clear" class="clear-photo" style="display:none;" onclick="clearChatPhoto()">✕ Remove</span>
       </div>
       <div class="chat-input-row">
@@ -534,11 +658,11 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 </div>
 
-<!-- Lessons Modal -->
+<!-- LESSONS MODAL -->
 <div class="modal-overlay" id="lessons-modal" style="display:none;">
   <div class="modal-box">
     <h3>🎉 Project Complete!</h3>
-    <p>Jot down what you learned before saving — it helps on future projects.</p>
+    <p>Jot down what you learned — it helps on future projects and teaches the Advisor about your skills.</p>
     <div class="form-row"><label>Lessons Learned</label><textarea id="modal-lessons" placeholder="What worked? What would you do differently? Any tricks discovered?" style="min-height:90px;"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="skipLessons()">Skip</button>
@@ -549,100 +673,91 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 
 <div class="status-bar" id="status-bar"></div>
 
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────
+// ── CONFIG ───────────────────────────────────────────────────────────────
 const SCRIPT_URL    = "https://script.google.com/macros/s/AKfycby83e0AXHphq8hPTB2rOWVGedpBq9zrNi083BvmdmXqRZzll7ccS1HenCy9JZ-D_guN/exec";
 const ANTHROPIC_KEY = "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";
 
-// ── STATE ─────────────────────────────────────────────────────────────────
-let tools       = JSON.parse(localStorage.getItem('gw_tools')    || '[]');
-let projects    = JSON.parse(localStorage.getItem('gw_projects') || '[]');
-let customTags  = JSON.parse(localStorage.getItem('gw_ctags')    || '[]');
-let selToolIds  = [];
-let selTags     = [];
-let filters     = { active:{}, past:{}, completed:{} };
-let pendingProj = null;
-let projFiles   = [];
-let toolFile    = null;
-let chatB64     = null;
-let chatMime    = null;
+// ── STATE ────────────────────────────────────────────────────────────────
+let tools      = JSON.parse(localStorage.getItem('egcw_tools')    || '[]');
+let projects   = JSON.parse(localStorage.getItem('egcw_projects') || '[]');
+let inventory  = JSON.parse(localStorage.getItem('egcw_inv')      || '[]');
+let customTags = JSON.parse(localStorage.getItem('egcw_ctags')    || '[]');
+let selToolIds = [], selTags = [], filters = {};
+let pendingProj = null, projFiles = [], toolFile = null;
+let chatB64 = null, chatMime = null;
 
-// ── UTILS ─────────────────────────────────────────────────────────────────
-const $      = id => document.getElementById(id);
-const gv     = id => ($( id) ? $(id).value.trim() : '');
-const genId  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-const fmtTs  = ts => ts ? new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+// ── UTILS ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const gv = id => ($( id) ? $(id).value.trim() : '');
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const fmtTs = ts => ts ? new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 
 function showStatus(msg, type='', ms=2800) {
   const b = $('status-bar');
   b.textContent = msg;
-  b.className = 'status-bar show' + (type==='err'?' err':type==='ok'?' ok':'');
+  b.className = 'status-bar show'+(type==='err'?' err':type==='ok'?' ok':'');
   setTimeout(()=>b.className='status-bar', ms);
 }
+function toSheet(p) { fetch(SCRIPT_URL+'?'+new URLSearchParams(p).toString(),{method:'GET',mode:'no-cors'}).catch(()=>{}); }
+function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
+function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
 
-function toSheet(params) {
-  fetch(SCRIPT_URL+'?'+new URLSearchParams(params).toString(),{method:'GET',mode:'no-cors'}).catch(()=>{});
-}
-
-function f2b64(file){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=()=>j(); rd.readAsDataURL(file); }); }
-function f2url(file){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=()=>j(); rd.readAsDataURL(file); }); }
-
-// ── TAB NAVIGATION ────────────────────────────────────────────────────────
+// ── NAVIGATION ───────────────────────────────────────────────────────────
 function showTab(t) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   $('section-'+t).classList.add('active');
   $('tab-'+t).classList.add('active');
   if(t==='projects'){ renderToolChips(); renderAllPLists(); }
-  if(t==='tools')    renderToolList();
+  if(t==='shop')    { renderToolList(); renderInvList(); }
 }
 
 function showPTab(s) {
-  ['active','add','past','completed'].forEach(x=>{
+  ['planned','progress','completed','add'].forEach(x=>{
     $('psub-'+x).style.display = x===s?'block':'none';
     $('ptab-'+x).classList.toggle('active', x===s);
   });
-  if(s!=='add') renderAllPLists();
+  if(s==='add') renderToolChips();
+  else renderAllPLists();
 }
 
-function showTTab(s) {
-  ['inventory','add','bulk'].forEach(x=>{
-    $('tsub-'+x).style.display = x===s?'block':'none';
-    $('ttab-'+x).classList.toggle('active', x===s);
+function showSTab(s) {
+  ['tools','inventory','add','bulk'].forEach(x=>{
+    $('ssub-'+x).style.display = x===s?'block':'none';
+    $('stab-'+x).classList.toggle('active', x===s);
   });
-  if(s==='inventory') renderToolList();
+  if(s==='tools')     renderToolList();
+  if(s==='inventory') renderInvList();
 }
 
-// ── PROJECT TYPE ──────────────────────────────────────────────────────────
-function setPType(t) {
-  $('p-type').value = t;
-  const isNew = t==='new';
-  $('ptype-new').className  = 'btn btn-sm' + (isNew?' btn-primary':' btn-secondary');
-  $('ptype-past').className = 'btn btn-sm' + (!isNew?' btn-primary':' btn-secondary');
-  $('ptype-new').style.flex = $('ptype-past').style.flex = '1';
-  $('ptype-new').style.justifyContent = $('ptype-past').style.justifyContent = 'center';
-  $('p-year-row').style.display   = isNew?'none':'block';
-  $('p-status-row').style.display = isNew?'block':'none';
-  $('pform-title').textContent    = isNew?'📋 New Project':'📚 Past Project';
-  if(!isNew){ $('p-lessons-row').style.display='none'; }
+// ── ADD TYPE SELECTOR (Tool vs Inventory) ────────────────────────────────
+function setAddType(type) {
+  $('add-tool-form').style.display = type==='tool'?'block':'none';
+  $('add-inv-form').style.display  = type==='inv' ?'block':'none';
+  $('add-type-tool').className = 'btn btn-sm'+(type==='tool'?' btn-primary':' btn-secondary');
+  $('add-type-inv').className  = 'btn btn-sm'+(type==='inv' ?' btn-primary':' btn-secondary');
+  $('add-type-tool').style.flex = $('add-type-inv').style.flex = '1';
 }
 
+// ── PROJECT STATUS ───────────────────────────────────────────────────────
 function onStatusChg() {
-  $('p-lessons-row').style.display = gv('p-status')==='Complete'?'block':'none';
+  $('p-lessons-row').style.display = gv('p-status')==='Completed'?'block':'none';
 }
 function onForChg() {
   $('p-recip-row').style.display = gv('p-for')==='Other'?'block':'none';
 }
 
-// ── LOCATION DROPDOWNS ────────────────────────────────────────────────────
+// ── LOCATION DROPDOWNS ───────────────────────────────────────────────────
 function onLocChg(prefix) {
   const v = gv(prefix+'-location');
-  if(prefix==='t'){
-    $('t-third-row').style.display    = v==='Third Shop Bench - Drawer'    ?'block':'none';
-    $('t-craftsman-row').style.display = v==='Craftsman Shop Bench - Drawer'?'block':'none';
-  } else if(prefix==='b'){
-    $('b-third-row').style.display    = v==='Third Shop Bench - Drawer'    ?'block':'none';
-    $('b-craftsman-row').style.display = v==='Craftsman Shop Bench - Drawer'?'block':'none';
+  const t3 = $(prefix+'-third-row'),  tc = $(prefix+'-craftsman-row');
+  if(t3) t3.style.display = v==='Third Shop Bench - Drawer'    ?'block':'none';
+  if(tc) tc.style.display = v==='Craftsman Shop Bench - Drawer'?'block':'none';
+  if(prefix==='b'){
     if(v){ $('bulk-ready').style.display='block'; $('bulk-loc-name').textContent=fullLoc('b'); }
     else   $('bulk-ready').style.display='none';
   }
@@ -655,358 +770,313 @@ function fullLoc(p) {
   return base;
 }
 
-// ── TECHNIQUE TAGS ────────────────────────────────────────────────────────
+// ── TECHNIQUE TAGS ───────────────────────────────────────────────────────
 function toggleTag(el) {
-  const tag = el.dataset.tag;
-  el.classList.toggle('selected');
+  const tag=el.dataset.tag; el.classList.toggle('selected');
   if(el.classList.contains('selected')){ if(!selTags.includes(tag)) selTags.push(tag); }
-  else selTags = selTags.filter(t=>t!==tag);
+  else selTags=selTags.filter(t=>t!==tag);
 }
-
 function addCustomTag() {
-  const tag = prompt('Enter new technique tag:');
-  if(!tag||!tag.trim()) return;
-  const clean = tag.trim();
-  if(!customTags.includes(clean)){ customTags.push(clean); localStorage.setItem('gw_ctags',JSON.stringify(customTags)); }
+  const tag=prompt('Enter new technique tag:'); if(!tag||!tag.trim()) return;
+  const clean=tag.trim();
+  if(!customTags.includes(clean)){ customTags.push(clean); localStorage.setItem('egcw_ctags',JSON.stringify(customTags)); }
   rebuildCustomTags();
-  document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>{
-    if(c.dataset.tag===clean){ c.classList.add('selected'); if(!selTags.includes(clean)) selTags.push(clean); }
-  });
+  document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>{ if(c.dataset.tag===clean){ c.classList.add('selected'); if(!selTags.includes(clean)) selTags.push(clean); }});
 }
-
 function rebuildCustomTags() {
-  document.querySelectorAll('#tech-tags .custom').forEach(e=>e.remove());
+  document.querySelectorAll('#tech-tags .custom-tag').forEach(e=>e.remove());
   customTags.forEach(tag=>{
-    const el = document.createElement('span');
-    el.className = 'tag-chip custom'+(selTags.includes(tag)?' selected':'');
-    el.dataset.tag = tag; el.textContent = '🏷️ '+tag;
-    el.onclick = ()=>toggleTag(el);
+    const el=document.createElement('span'); el.className='tag-chip custom-tag'+(selTags.includes(tag)?' selected':'');
+    el.dataset.tag=tag; el.textContent='🏷️ '+tag; el.onclick=()=>toggleTag(el);
     $('tech-tags').appendChild(el);
   });
 }
 
-// ── TOOL CHIPS ────────────────────────────────────────────────────────────
+// ── TOOL CHIPS (for project form) ────────────────────────────────────────
 function renderToolChips() {
-  const c = $('tool-chips');
-  if(!tools.length){ c.innerHTML='<em style="font-size:12px;color:var(--muted);">Add tools to inventory first</em>'; return; }
-  const cats = {};
+  const c=$('tool-chips'); if(!c) return;
+  if(!tools.length){ c.innerHTML='<em style="font-size:12px;color:var(--muted);">Add tools in the Shop tab first</em>'; return; }
+  const cats={};
   tools.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
   c.innerHTML='';
   Object.entries(cats).forEach(([cat,ts])=>{
     const g=document.createElement('div'); g.style.cssText='margin-bottom:8px;width:100%;';
     g.innerHTML=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;">${cat}</div>`;
     const row=document.createElement('div'); row.className='tag-row';
-    ts.forEach(t=>{
-      const ch=document.createElement('span');
-      ch.className='tag-chip'+(selToolIds.includes(t.id)?' selected':'');
-      ch.textContent=t.name;
-      ch.onclick=()=>{ ch.classList.toggle('selected'); if(ch.classList.contains('selected')){ if(!selToolIds.includes(t.id)) selToolIds.push(t.id); } else selToolIds=selToolIds.filter(x=>x!==t.id); };
-      row.appendChild(ch);
-    });
+    ts.forEach(t=>{ const ch=document.createElement('span'); ch.className='tag-chip'+(selToolIds.includes(t.id)?' selected':''); ch.textContent=t.name; ch.onclick=()=>{ ch.classList.toggle('selected'); if(ch.classList.contains('selected')){ if(!selToolIds.includes(t.id)) selToolIds.push(t.id); } else selToolIds=selToolIds.filter(x=>x!==t.id); }; row.appendChild(ch); });
     g.appendChild(row); c.appendChild(g);
   });
 }
 
-// ── DRIVE LINK / PREVIEW ──────────────────────────────────────────────────
-function driveId(url) {
-  if(!url) return null;
-  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-  return m?m[1]:null;
-}
-function driveThumb(url) { const id=driveId(url); return id?`https://drive.google.com/thumbnail?id=${id}&sz=w600`:null; }
-
-function onDriveLink(prefix) {
-  const url = gv(prefix+'-drive-link');
-  const prev = $(prefix+'-drive-preview');
-  const thumb = driveThumb(url);
+// ── DRIVE LINK ───────────────────────────────────────────────────────────
+function driveId(url){ if(!url) return null; const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/)||url.match(/id=([a-zA-Z0-9_-]+)/); return m?m[1]:null; }
+function driveThumb(url){ const id=driveId(url); return id?`https://drive.google.com/thumbnail?id=${id}&sz=w600`:null; }
+function onDriveLink(prefix){
+  const url=gv(prefix+'-drive-link'), prev=$(prefix+'-drive-prev'), thumb=driveThumb(url);
   if(thumb){ prev.src=thumb; prev.style.display='block'; prev.onerror=()=>prev.style.display='none'; }
   else prev.style.display='none';
 }
 
-// ── PROJECT PHOTOS ────────────────────────────────────────────────────────
-async function onProjPhotos(ev) {
-  projFiles = projFiles.concat(Array.from(ev.target.files));
-  await renderProjGrid(); ev.target.value='';
-}
-
-async function renderProjGrid() {
-  const grid = $('p-photo-grid'); grid.innerHTML='';
+// ── PROJECT PHOTOS ───────────────────────────────────────────────────────
+async function onProjPhotos(ev){ projFiles=projFiles.concat(Array.from(ev.target.files)); await renderProjGrid(); ev.target.value=''; }
+async function renderProjGrid(){
+  const g=$('p-photo-grid'); g.innerHTML='';
   for(let i=0;i<projFiles.length;i++){
-    const url = await f2url(projFiles[i]);
-    const w=document.createElement('div'); w.className='photo-thumb-wrap';
-    w.innerHTML=`<img src="${url}"><button class="photo-thumb-remove" onclick="removeProjPhoto(${i})">✕</button>`;
-    grid.appendChild(w);
+    const url=await f2url(projFiles[i]); const w=document.createElement('div'); w.className='thumb-wrap';
+    w.innerHTML=`<img src="${url}"><button class="thumb-rm" onclick="removeProjPhoto(${i})">✕</button>`; g.appendChild(w);
   }
-  $('p-drive-save-row').style.display = projFiles.length?'block':'none';
+  $('p-drive-save-row').style.display=projFiles.length?'block':'none';
 }
-
 function removeProjPhoto(i){ projFiles.splice(i,1); renderProjGrid(); }
-
-function shareProjPhotos() {
-  if(navigator.share && projFiles.length){
-    navigator.share({ files:projFiles, title:'Project Photo', text:'Save to Grasse Workshop → Projects in Google Drive' }).catch(()=>{});
-  } else showStatus('📱 Use your Files app to move photos to Google Drive','',4000);
+function shareProjPhotos(){
+  if(navigator.share&&projFiles.length) navigator.share({files:projFiles,title:'Project Photo',text:'Save to Grasse Workshop → Projects in Google Drive'}).catch(()=>{});
+  else showStatus('📱 Use your Files app to move photos to Google Drive','',4000);
 }
 
-// ── TOOL PHOTO ────────────────────────────────────────────────────────────
-async function onToolPhoto(ev) {
-  toolFile = ev.target.files[0]; if(!toolFile) return;
-  const url = await f2url(toolFile);
-  $('t-photo-preview').src = url;
-  $('t-photo-wrap').style.display = 'block';
-}
+// ── TOOL PHOTO ───────────────────────────────────────────────────────────
+async function onToolPhoto(ev){ toolFile=ev.target.files[0]; if(!toolFile) return; $('t-photo-prev').src=await f2url(toolFile); $('t-photo-wrap').style.display='block'; }
+function shareToolPhoto(){ if(!toolFile) return; if(navigator.share) navigator.share({files:[toolFile],title:'Tool Photo',text:'Save to Grasse Workshop → Tools in Google Drive'}).catch(()=>{}); else showStatus('📱 Use your Files app to move the photo to Google Drive','',4000); }
 
-function shareToolPhoto() {
-  if(!toolFile) return;
-  if(navigator.share) navigator.share({ files:[toolFile], title:'Tool Photo', text:'Save to Grasse Workshop → Tools in Google Drive' }).catch(()=>{});
-  else showStatus('📱 Use your Files app to move the photo to Google Drive','',4000);
-}
-
-// ── SEARCH / FILTER ───────────────────────────────────────────────────────
-function toggleFilter(el) {
-  el.classList.toggle('on');
-  const f=el.dataset.f, list=el.dataset.list;
+// ── FILTER ───────────────────────────────────────────────────────────────
+function toggleFilter(el){
+  el.classList.toggle('on'); const f=el.dataset.f, list=el.dataset.list;
   if(!filters[list]) filters[list]={};
-  filters[list][f] = el.classList.contains('on');
-  renderPList(list);
+  filters[list][f]=el.classList.contains('on'); renderPList(list);
 }
-
-function getActiveFilters(list) {
-  return Object.entries(filters[list]||{}).filter(([,v])=>v).map(([k])=>k);
-}
-
-function filterList(list, srchId, listType) {
-  const q=($(srchId)?.value||'').toLowerCase();
-  const ff=getActiveFilters(listType);
+function getActiveFilters(list){ return Object.entries(filters[list]||{}).filter(([,v])=>v).map(([k])=>k); }
+function filterList(list,srchId,listType){
+  const q=($(srchId)?.value||'').toLowerCase(), ff=getActiveFilters(listType);
   return list.filter(p=>{
-    const ms = !q||(p.name||'').toLowerCase().includes(q)||(p.recipient||'').toLowerCase().includes(q)||(p.year||'').includes(q)||(p.tags||[]).some(t=>t.toLowerCase().includes(q));
-    const mf = ff.length===0 || ff.every(f=>(p.tags||[]).includes(f));
+    const ms=!q||(p.name||'').toLowerCase().includes(q)||(p.recipient||'').toLowerCase().includes(q)||(p.tags||[]).some(t=>t.toLowerCase().includes(q));
+    const mf=ff.length===0||ff.every(f=>(p.tags||[]).includes(f));
     return ms&&mf;
   });
 }
 
-// ── RENDER PROJECT LISTS ──────────────────────────────────────────────────
-function renderAllPLists(){ ['active','past','completed'].forEach(renderPList); }
+// ── RENDER PROJECT LISTS ─────────────────────────────────────────────────
+function renderAllPLists(){ ['planned','progress','completed'].forEach(renderPList); }
 
-function renderPList(type) {
-  let srcList, srchId, contId, emptyIcon, emptyMsg;
-  if(type==='active'){
-    srcList=projects.filter(p=>p.ptype==='new'&&p.status!=='Complete');
-    srchId='srch-active'; contId='plist-active';
-    emptyIcon='⚡'; emptyMsg='No active projects yet.<br>Tap ➕ Add to start one!';
-  } else if(type==='past'){
-    srcList=projects.filter(p=>p.ptype==='past');
-    srchId='srch-past'; contId='plist-past';
-    emptyIcon='📚'; emptyMsg='No past projects added yet.<br>Tap ➕ Add → Past Project.';
-  } else {
-    srcList=projects.filter(p=>p.status==='Complete'&&p.ptype!=='past');
-    srchId='srch-completed'; contId='plist-completed';
-    emptyIcon='✅'; emptyMsg='No completed projects yet.<br>Keep building! 🪚';
-  }
-  const filtered = filterList(srcList, srchId, type);
-  const cont = $(contId);
-  if(!filtered.length){
-    cont.innerHTML=`<div class="empty-state"><div class="ei">${emptyIcon}</div><p>${emptyMsg}</p></div>`; return;
-  }
-  const BC={Planning:'badge-planning','In Progress':'badge-active',Complete:'badge-complete'};
+function renderPList(type){
+  const map = { planned:{filter:p=>p.status==='Planned',srch:'srch-planned',cont:'plist-planned',icon:'📋',msg:'No planned projects yet.<br>Tap ➕ Add to plan one!'},
+                progress:{filter:p=>p.status==='In Progress',srch:'srch-progress',cont:'plist-progress',icon:'⚡',msg:'No projects in progress.<br>Start one from Planned, or tap ➕ Add.'},
+                completed:{filter:p=>p.status==='Completed',srch:'srch-completed',cont:'plist-completed',icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'} };
+  const cfg=map[type]; if(!cfg) return;
+  const filtered=filterList(projects.filter(cfg.filter), cfg.srch, type);
+  const cont=$(cfg.cont);
+  if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
+
+  const BC={Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
   const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
-  cont.innerHTML = filtered.map(p=>{
+
+  cont.innerHTML=filtered.map(p=>{
     const thumb=driveThumb(p.driveLink);
     const tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
+    const actionBtns = type==='planned'
+      ? `<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button>`
+      : type==='progress'
+      ? `<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      : `<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
     return `<div class="proj-card">
       <div class="proj-card-header">
-        <div>
-          <div class="proj-card-name">${p.name}</div>
-          <div class="proj-card-meta">
-            ${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}
-            ${p.year?'<br>📅 '+p.year:''}
-            ${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}
-          </div>
-        </div>
-        <span class="badge ${type==='past'?'badge-past':BC[p.status]||''}">${type==='past'?'Past':p.status}</span>
+        <div><div class="proj-card-name">${p.name}</div>
+        <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div></div>
+        <span class="badge ${BC[p.status]||''}">${p.status}</span>
       </div>
       ${p.desc?`<div style="font-size:13px;color:var(--charcoal);margin-top:4px;">${p.desc}</div>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
       ${thumb?`<img src="${thumb}" class="proj-photo" onerror="this.style.display='none'">`:''}
       ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
-      ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:6px;">${p.notes}</div>`:''}
-      <div style="font-size:11px;color:var(--muted);margin-top:8px;">${fmtTs(p.ts)}</div>
+      ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:5px;">${p.notes}</div>`:''}
+      <div class="proj-actions">${actionBtns}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">${fmtTs(p.ts)}</div>
     </div>`;
   }).join('');
 }
 
-// ── SAVE PROJECT ──────────────────────────────────────────────────────────
-function saveProject() {
-  const name = gv('p-name');
-  if(!name){ showStatus('⚠️ Please enter a project name','err'); return; }
-  const ptype  = gv('p-type');
-  const status = ptype==='past'?'Complete':gv('p-status');
-  if(status==='Complete'&&ptype!=='past'&&!gv('p-lessons')){
-    pendingProj = collectProj();
+// ── MOVE PROJECT STATUS ──────────────────────────────────────────────────
+function moveProject(id, newStatus) {
+  const p = projects.find(x=>x.id===id); if(!p) return;
+  if(newStatus==='Completed' && !p.lessons) {
+    pendingProj = {moveId:id, moveStatus:newStatus};
     $('lessons-modal').style.display='flex'; return;
   }
+  applyMove(id, newStatus, p.lessons||'');
+}
+
+function applyMove(id, status, lessons) {
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  p.status=status; if(lessons) p.lessons=lessons;
+  localStorage.setItem('egcw_projects',JSON.stringify(projects));
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,status:p.status,lessons:p.lessons||''});
+  showStatus(`✅ Project moved to ${status}`,'ok');
+  renderAllPLists();
+  const dest=status==='In Progress'?'progress':'completed';
+  setTimeout(()=>showPTab(dest),350);
+}
+
+// ── EDIT PROJECT ─────────────────────────────────────────────────────────
+function editProject(id) {
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  showPTab('add'); renderToolChips();
+  $('p-edit-id').value=id; $('pform-title').textContent='✏️ Edit Project';
+  $('p-name').value=p.name||''; $('p-desc').value=p.desc||''; $('p-wood').value=p.wood||'';
+  $('p-dims').value=p.dims||''; $('p-status').value=p.status||'Planned';
+  $('p-lessons').value=p.lessons||''; $('p-for').value=p.madeFor||'Self';
+  $('p-recipient').value=p.recipient||''; $('p-drive-link').value=p.driveLink||'';
+  $('p-notes').value=p.notes||'';
+  $('p-lessons-row').style.display=p.status==='Completed'?'block':'none';
+  $('p-recip-row').style.display=p.madeFor==='Other'?'block':'none';
+  selTags=[...(p.tags||[])]; selToolIds=[];
+  document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>{ c.classList.toggle('selected',selTags.includes(c.dataset.tag)); });
+  rebuildCustomTags();
+  if(p.driveLink) onDriveLink('p');
+}
+
+// ── SAVE PROJECT ─────────────────────────────────────────────────────────
+function saveProject(){
+  const name=gv('p-name'); if(!name){ showStatus('⚠️ Please enter a project name','err'); return; }
+  const status=gv('p-status');
+  if(status==='Completed'&&!gv('p-lessons')){ pendingProj=collectProj(); $('lessons-modal').style.display='flex'; return; }
   commitProj(collectProj());
 }
 
-function collectProj() {
-  const ptype = gv('p-type');
-  const toolNames = tools.filter(t=>selToolIds.includes(t.id)).map(t=>t.name).join(', ');
-  return {
-    id:genId(), ts:Date.now(), ptype,
+function collectProj(){
+  const editId=gv('p-edit-id');
+  const toolNames=tools.filter(t=>selToolIds.includes(t.id)).map(t=>t.name).join(', ');
+  return { id:editId||genId(), ts:editId?(projects.find(x=>x.id===editId)?.ts||Date.now()):Date.now(), isEdit:!!editId,
     name:gv('p-name'), desc:gv('p-desc'), wood:gv('p-wood'), dims:gv('p-dims'),
-    year: ptype==='past'?gv('p-year'):'',
-    status: ptype==='past'?'Complete':gv('p-status'),
-    lessons:gv('p-lessons'), madeFor:gv('p-for'), recipient:gv('p-recipient'),
-    driveLink:gv('p-drive-link'), tools:toolNames, toolNotes:gv('p-tool-notes'),
-    tags:[...selTags], notes:gv('p-notes')
-  };
+    status:gv('p-status'), lessons:gv('p-lessons'), madeFor:gv('p-for'), recipient:gv('p-recipient'),
+    driveLink:gv('p-drive-link'), tools:toolNames, toolNotes:gv('p-tool-notes'), tags:[...selTags], notes:gv('p-notes') };
 }
 
-function saveLessonsModal() {
-  if(pendingProj){ pendingProj.lessons=$('modal-lessons').value.trim(); commitProj(pendingProj); }
-  $('lessons-modal').style.display='none';
+function saveLessonsModal(){
+  const lessons=$('modal-lessons').value.trim();
+  if(pendingProj?.moveId){ applyMove(pendingProj.moveId, pendingProj.moveStatus, lessons); }
+  else if(pendingProj){ pendingProj.lessons=lessons; commitProj(pendingProj); }
+  $('lessons-modal').style.display='none'; pendingProj=null; $('modal-lessons').value='';
 }
-function skipLessons() {
-  if(pendingProj) commitProj(pendingProj);
-  $('lessons-modal').style.display='none';
-}
-
-function commitProj(p) {
-  projects.unshift(p);
-  localStorage.setItem('gw_projects',JSON.stringify(projects));
-  toSheet({ action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),projectType:p.ptype,name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,year:p.year,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:p.driveLink,tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes });
-  showStatus('✅ Project saved!','ok');
-  clearProjForm();
-  renderAllPLists();
-  selToolIds=[]; selTags=[];
-  const dest = p.ptype==='past'?'past':(p.status==='Complete'?'completed':'active');
-  setTimeout(()=>showPTab(dest), 350);
+function skipLessons(){
+  if(pendingProj?.moveId) applyMove(pendingProj.moveId, pendingProj.moveStatus,'');
+  else if(pendingProj) commitProj(pendingProj);
+  $('lessons-modal').style.display='none'; pendingProj=null; $('modal-lessons').value='';
 }
 
-function clearProjForm() {
-  ['p-name','p-desc','p-wood','p-dims','p-year','p-recipient','p-drive-link','p-tool-notes','p-notes','p-lessons'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
-  $('p-status').value='Planning'; $('p-for').value='Self';
+function commitProj(p){
+  if(p.isEdit) { const i=projects.findIndex(x=>x.id===p.id); if(i>-1) projects[i]=p; }
+  else projects.unshift(p);
+  localStorage.setItem('egcw_projects',JSON.stringify(projects));
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:p.driveLink,tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes});
+  showStatus(p.isEdit?'✅ Project updated!':'✅ Project saved!','ok');
+  clearProjForm(); renderAllPLists(); selToolIds=[]; selTags=[];
+  const dest=p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed';
+  setTimeout(()=>showPTab(dest),350);
+}
+
+function clearProjForm(){
+  ['p-name','p-desc','p-wood','p-dims','p-recipient','p-drive-link','p-tool-notes','p-notes','p-lessons'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  $('p-edit-id').value=''; $('p-status').value='Planned'; $('p-for').value='Self';
   $('p-lessons-row').style.display='none'; $('p-recip-row').style.display='none';
-  $('p-drive-preview').style.display='none'; $('p-photo-grid').innerHTML='';
-  $('p-drive-save-row').style.display='none';
+  $('p-drive-prev').style.display='none'; $('p-photo-grid').innerHTML=''; $('p-drive-save-row').style.display='none';
   document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>c.classList.remove('selected'));
-  projFiles=[]; selTags=[]; setPType('new'); renderToolChips();
+  $('pform-title').textContent='📋 Add Project';
+  projFiles=[]; selTags=[]; rebuildCustomTags(); renderToolChips();
 }
 
-// ── TOOL SCAN ─────────────────────────────────────────────────────────────
-async function scanToolPhoto(ev) {
+// ── SAVE TOOL ────────────────────────────────────────────────────────────
+function toggleMaintSec(){ $('t-maint-sec').style.display=$('t-maint-toggle').checked?'block':'none'; }
+
+async function scanToolPhoto(ev){
   const file=ev.target.files[0]; if(!file) return;
-  const stat=$('scan-status');
-  stat.innerHTML='<span class="spinner dark"></span> Analyzing tool label...';
+  $('scan-status').innerHTML='<span class="spinner dark"></span> Analyzing tool label...';
   try {
-    const b64=await f2b64(file);
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:600,
-        messages:[{role:"user",content:[
-          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
-          {type:"text",text:'Analyze this woodworking tool photo/label. Return ONLY this JSON (no markdown):\n{"name":"","brand":"","model":"","serial":"","category":""}\nCategory options: Power Tools, Hand Tools, Measuring & Layout, Finishing, Clamps & Workholding, Safety, Other'}
-        ]}]
-      })
-    });
-    const d=await res.json();
-    const parsed=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
-    if(parsed.name)    $('t-name').value    =parsed.name;
-    if(parsed.brand)   $('t-brand').value   =parsed.brand;
-    if(parsed.model)   $('t-model').value   =parsed.model;
-    if(parsed.serial)  $('t-serial').value  =parsed.serial;
-    if(parsed.category)$('t-category').value=parsed.category;
-    stat.innerHTML='✅ Fields auto-filled — review and complete below.';
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:await f2b64(file)}},{type:"text",text:'Identify this woodworking tool. Return ONLY JSON (no markdown):\n{"name":"","brand":"","model":"","serial":"","category":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other'}]}]})});
+    const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
+    if(p.name)    $('t-name').value    =p.name;
+    if(p.brand)   $('t-brand').value   =p.brand;
+    if(p.model)   $('t-model').value   =p.model;
+    if(p.serial)  $('t-serial').value  =p.serial;
+    if(p.category)$('t-category').value=p.category;
+    $('scan-status').innerHTML='✅ Fields auto-filled — review and complete below.';
     showStatus('✅ Tool scanned!','ok');
-  } catch(e){ stat.innerHTML='⚠️ Could not read label. Fill in manually.'; }
+  } catch(e){ $('scan-status').innerHTML='⚠️ Could not read label. Fill in manually.'; }
   ev.target.value='';
 }
 
-// ── MAINTENANCE TIP ───────────────────────────────────────────────────────
-async function getMaintTip() {
-  const name=gv('t-name'); if(!name){ showStatus('⚠️ Enter a tool name first','err'); return; }
+async function getMaintTip(){
+  const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name first','err');return;}
   const btn=$('maint-tip-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Getting tips...';
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:500,
-        messages:[{role:"user",content:`Practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' (model: '+gv('t-model')+')':''} (${gv('t-category')}). Intermediate woodworker. Bullet points covering: cleaning frequency, lubrication (product & interval), blade/belt/part replacement, safety checks, model tips. Concise.`}]
-      })
-    });
-    const d=await res.json();
-    const tip=d.content?.[0]?.text||'No tips available.';
-    $('maint-tip-result').innerHTML=`<div class="maint-tip-box"><div class="tip-header">🤖 AI Maintenance Schedule</div>${tip.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,messages:[{role:"user",content:`Practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' ('+gv('t-model')+')':''} (${gv('t-category')}). Intermediate woodworker. Bullet points: cleaning freq, lubrication product & interval, blade/belt/part replacement, safety checks, model-specific tips. Concise.`}]})});
+    const d=await res.json(), tip=d.content?.[0]?.text||'No tips available.';
+    $('maint-tip-result').innerHTML=`<div class="maint-tip-box"><div class="tip-hdr">🤖 AI Maintenance Schedule</div>${tip.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
   } catch(e){ $('maint-tip-result').innerHTML='<div style="color:var(--red);font-size:13px;">⚠️ Could not get tips.</div>'; }
   btn.disabled=false; btn.innerHTML='🤖 Get AI Maintenance Schedule';
 }
 
-// ── SAVE TOOL ─────────────────────────────────────────────────────────────
-function saveTool() {
-  const name=gv('t-name'); if(!name){ showStatus('⚠️ Enter a tool name','err'); return; }
-  const hasMaint=$('t-maint-toggle').checked;
-  const maintNote=hasMaint?gv('t-maint-note'):'';
-  const loc=fullLoc('t');
-  const tool={ id:genId(), ts:Date.now(), cat:gv('t-category'), name, brand:gv('t-brand'), model:gv('t-model'), serial:gv('t-serial'), date:gv('t-date'), price:gv('t-price'), location:loc, manual:gv('t-manual'), condition:gv('t-condition'), notes:gv('t-notes'), driveLink:gv('t-drive-link'), hasMaint, maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[] };
-  tools.push(tool);
-  localStorage.setItem('gw_tools',JSON.stringify(tools));
+function saveTool(){
+  const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
+  const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
+  const tool={id:genId(),ts:Date.now(),cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),hasMaint,maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[]};
+  tools.push(tool); localStorage.setItem('egcw_tools',JSON.stringify(tools));
   toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No'});
   if(maintNote) toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:tool.id,toolName:tool.name,date:new Date().toISOString().split('T')[0],note:maintNote});
-  showStatus('✅ Tool saved!','ok');
-  clearToolForm(); showTTab('inventory'); renderToolList();
+  showStatus('✅ Tool saved!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
 }
 
-function clearToolForm() {
-  ['t-name','t-brand','t-model','t-serial','t-date','t-price','t-manual','t-notes','t-maint-note','t-drive-link'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+function clearToolForm(){
+  ['t-name','t-brand','t-model','t-serial','t-date','t-price','t-manual','t-notes','t-maint-note','t-drive-link'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('t-category').value='Power Tools'; $('t-condition').value='Excellent'; $('t-location').value='';
   $('t-third-row').style.display=$('t-craftsman-row').style.display='none';
   $('t-maint-toggle').checked=false; $('t-maint-sec').style.display='none';
-  $('t-photo-wrap').style.display='none'; $('t-drive-preview').style.display='none';
-  $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML='';
-  toolFile=null;
+  $('t-photo-wrap').style.display='none'; $('t-drive-prev').style.display='none';
+  $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML=''; toolFile=null;
 }
 
-// ── RENDER TOOLS ──────────────────────────────────────────────────────────
-function renderToolList() {
+// ── SAVE INVENTORY ITEM ──────────────────────────────────────────────────
+function saveInvItem(){
+  const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
+  const loc=fullLoc('i');
+  const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
+  inventory.push(item); localStorage.setItem('egcw_inv',JSON.stringify(inventory));
+  toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
+}
+
+function clearInvForm(){
+  ['i-name','i-notes'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  $('i-category').value='Fasteners'; $('i-location').value='';
+  $('i-third-row').style.display=$('i-craftsman-row').style.display='none';
+}
+
+// ── RENDER TOOLS ─────────────────────────────────────────────────────────
+function renderToolList(){
   const cont=$('tool-list'), cntEl=$('tool-count');
   const q=(document.getElementById('srch-tools')?.value||'').toLowerCase();
-  let list=tools;
-  if(q) list=list.filter(t=>(t.name||'').toLowerCase().includes(q)||(t.brand||'').toLowerCase().includes(q)||(t.location||'').toLowerCase().includes(q)||(t.model||'').toLowerCase().includes(q));
+  let list=tools.filter(t=>!q||(t.name||'').toLowerCase().includes(q)||(t.brand||'').toLowerCase().includes(q)||(t.location||'').toLowerCase().includes(q)||(t.model||'').toLowerCase().includes(q));
   if(!list.length){
-    cont.innerHTML=tools.length===0?'<div class="empty-state"><div class="ei">🔧</div><p>No tools saved yet.<br>Tap ➕ Add Tool to get started!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No tools match your search.</p></div>';
+    cont.innerHTML=tools.length===0?'<div class="empty-state"><div class="ei">🔧</div><p>No tools yet.<br>Tap ➕ Add New → Add Tool</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No tools match your search.</p></div>';
     cntEl.textContent=''; return;
   }
   cntEl.textContent=tools.length+' tools';
   const CB={Excellent:'badge-excellent',Good:'badge-good',Fair:'badge-fair','Needs Service':'badge-service'};
   const CI={'Power Tools':'⚡','Hand Tools':'🔨','Measuring & Layout':'📐',Finishing:'🖌️','Clamps & Workholding':'🗜️',Safety:'🦺',Other:'🔩'};
-  const cats={};
-  list.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
+  const cats={}; list.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
   cont.innerHTML=Object.entries(cats).map(([cat,ts])=>`
-    <div class="card" style="padding:16px;">
-      <div class="card-title" style="margin-bottom:10px;font-size:15px;">${CI[cat]||'🔧'} ${cat}</div>
+    <div class="card" style="padding:14px;">
+      <div class="card-title" style="margin-bottom:10px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
       ${ts.map(t=>{
         const thumb=driveThumb(t.driveLink);
-        return `<div class="tool-row">
-          <div class="tool-icon-wrap">${CI[t.cat]||'🔧'}</div>
-          <div class="tool-info">
-            <div class="tool-name">${t.name}</div>
-            <div class="tool-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}</div>
+        return `<div class="item-row">
+          <div class="item-icon">${CI[t.cat]||'🔧'}</div>
+          <div class="item-info">
+            <div class="item-name">${t.name}</div>
+            <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}</div>
             <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <span class="badge ${CB[t.condition]||''}">${t.condition}</span>
               ${t.hasMaint?'<span style="font-size:11px;color:var(--accent);">📋 Maint</span>':''}
             </div>
-            ${thumb?`<img src="${thumb}" style="width:100%;max-height:110px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''}
-            ${t.hasMaint?`<div style="margin-top:8px;">
-              <div class="collapsible-header" onclick="togMaint('m-${t.id}',this)">
-                <span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span>
-                <span class="chevron">▼</span>
-              </div>
-              <div id="m-${t.id}" style="display:none;">
-                ${(t.maintLog||[]).map(m=>`<div class="maint-log-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}
-                <button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button>
-              </div>
-            </div>`:''}
+            ${thumb?`<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''}
+            ${t.hasMaint?`<div style="margin-top:7px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
             ${t.manual?`<a href="${t.manual}" target="_blank" style="font-size:11px;color:var(--accent);margin-top:4px;display:inline-block;">📄 Manual</a>`:''}
           </div>
         </div>`;
@@ -1014,100 +1084,93 @@ function renderToolList() {
     </div>`).join('');
 }
 
-function togMaint(id, hdr) {
-  const b=$(id), ch=hdr.querySelector('.chevron'), open=b.style.display!=='none';
-  b.style.display=open?'none':'block'; ch.classList.toggle('open',!open);
-}
+function togMaint(id,hdr){ const b=$(id),ch=hdr.querySelector('.chevron'),open=b.style.display!=='none'; b.style.display=open?'none':'block'; ch.classList.toggle('open',!open); }
 
-function addMaintEntry(toolId) {
+function addMaintEntry(toolId){
   const note=prompt('Enter maintenance note:'); if(!note) return;
-  const today=new Date().toISOString().split('T')[0];
-  const t=tools.find(x=>x.id===toolId); if(!t) return;
+  const today=new Date().toISOString().split('T')[0], t=tools.find(x=>x.id===toolId); if(!t) return;
   if(!t.maintLog) t.maintLog=[];
-  t.maintLog.push({date:today,note});
-  localStorage.setItem('gw_tools',JSON.stringify(tools));
+  t.maintLog.push({date:today,note}); localStorage.setItem('egcw_tools',JSON.stringify(tools));
   toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId,toolName:t.name,date:today,note});
-  showStatus('✅ Maintenance entry added!','ok');
-  renderToolList();
+  showStatus('✅ Maintenance entry added!','ok'); renderToolList();
 }
 
-// ── BULK SCAN ─────────────────────────────────────────────────────────────
-async function bulkScan(ev) {
+// ── RENDER INVENTORY ─────────────────────────────────────────────────────
+function renderInvList(){
+  const cont=$('inv-list'), cntEl=$('inv-count');
+  const q=(document.getElementById('srch-inv')?.value||'').toLowerCase();
+  let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q));
+  if(!list.length){
+    cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>';
+    cntEl.textContent=''; return;
+  }
+  cntEl.textContent=inventory.length+' items';
+  const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
+  const cats={}; list.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
+  cont.innerHTML=Object.entries(cats).map(([cat,items])=>`
+    <div class="card" style="padding:14px;">
+      <div class="card-title" style="margin-bottom:10px;font-size:14px;">${catIcon[cat]||'📦'} ${cat}</div>
+      ${items.map(i=>`<div class="item-row">
+        <div class="item-icon">${catIcon[i.category]||'📦'}</div>
+        <div class="item-info">
+          <div class="item-name">${i.name}</div>
+          <div class="item-meta">${i.location?'📍 '+i.location:''}${i.notes?'<br>'+i.notes:''}</div>
+        </div>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── BULK SCAN ────────────────────────────────────────────────────────────
+async function bulkScan(ev){
   const file=ev.target.files[0]; if(!file) return;
-  const loc=fullLoc('b');
-  const eid='bs-'+genId();
-  const dataUrl=await f2url(file);
+  const loc=fullLoc('b'), eid='bs-'+genId(), dataUrl=await f2url(file);
   const el=document.createElement('div'); el.className='card'; el.id=eid;
-  el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin-bottom:10px;"><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span class="spinner dark"></span> Identifying tool...</div>`;
+  el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-bottom:9px;"><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span class="spinner dark"></span> Identifying tool...</div>`;
   $('bulk-results').prepend(el);
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:500,
-        messages:[{role:"user",content:[
-          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:await f2b64(file)}},
-          {type:"text",text:'Identify this woodworking tool. Return ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}
-        ]}]
-      })
-    });
-    const d=await res.json();
-    const p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
-    el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin-bottom:10px;">
-      <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${p.name||'Unknown Tool'}</div>
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:await f2b64(file)}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
+    const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
+    el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-bottom:9px;">
+      <div style="font-weight:600;font-size:14px;margin-bottom:3px;">${p.name||'Unknown Tool'}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${p.brand?p.brand+' · ':''}${p.model||''}<br>📍 ${loc}</div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:7px;">
         <button class="btn btn-primary btn-sm" onclick="confirmBulk('${eid}','${encodeURIComponent(JSON.stringify(p))}','${encodeURIComponent(loc)}')">✅ Add to Inventory</button>
-        <button class="btn btn-secondary btn-sm" onclick="$(\'${eid}\').remove()">✕ Skip</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">✕ Skip</button>
       </div>`;
   } catch(e){ el.innerHTML=`<div style="font-size:13px;color:var(--red);">⚠️ Could not identify. <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">Dismiss</button></div>`; }
   ev.target.value='';
 }
-
-function confirmBulk(eid, pStr, locStr) {
+function confirmBulk(eid,pStr,locStr){
   const p=JSON.parse(decodeURIComponent(pStr)), loc=decodeURIComponent(locStr);
-  const tool={ id:genId(), ts:Date.now(), cat:p.category||'Other', name:p.name||'Unknown Tool', brand:p.brand||'', model:p.model||'', serial:p.serial||'', date:'', price:'', location:loc, manual:'', condition:p.condition||'Good', notes:'Added via bulk scan', driveLink:'', hasMaint:false, maintLog:[] };
-  tools.push(tool); localStorage.setItem('gw_tools',JSON.stringify(tools));
+  const tool={id:genId(),ts:Date.now(),cat:p.category||'Other',name:p.name||'Unknown',brand:p.brand||'',model:p.model||'',serial:p.serial||'',date:'',price:'',location:loc,manual:'',condition:p.condition||'Good',notes:'Added via bulk scan',driveLink:'',hasMaint:false,maintLog:[]};
+  tools.push(tool); localStorage.setItem('egcw_tools',JSON.stringify(tools));
   toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,location:tool.location,condition:tool.condition,notes:tool.notes,hasMaintLog:'No'});
   $(eid).innerHTML=`<div style="font-size:13px;color:var(--green);padding:4px 0;">✅ <strong>${tool.name}</strong> added at ${loc}</div>`;
   showStatus('✅ '+tool.name+' added!','ok');
 }
 
-// ── AI ADVISOR ────────────────────────────────────────────────────────────
-function onChatPhoto(ev) {
-  const f=ev.target.files[0]; if(!f) return;
-  chatMime=f.type||'image/jpeg';
-  const rd=new FileReader();
-  rd.onload=e=>{
-    chatB64=e.target.result.split(',')[1];
-    $('chat-thumb').src=e.target.result; $('chat-thumb').style.display='inline-block';
-    $('chat-photo-clear').style.display='inline';
-  };
-  rd.readAsDataURL(f);
-}
+// ── AI ADVISOR ───────────────────────────────────────────────────────────
+function onChatPhoto(ev){ const f=ev.target.files[0]; if(!f) return; chatMime=f.type||'image/jpeg'; const rd=new FileReader(); rd.onload=e=>{ chatB64=e.target.result.split(',')[1]; $('chat-thumb').src=e.target.result; $('chat-thumb').style.display='inline-block'; $('chat-photo-clear').style.display='inline'; }; rd.readAsDataURL(f); }
 function clearChatPhoto(){ chatB64=null; chatMime=null; $('chat-thumb').style.display='none'; $('chat-photo-clear').style.display='none'; $('chat-photo-input').value=''; }
 
-function chatAppend(role, text, hasPhoto=false) {
-  const c=$('chat-messages');
-  const d=document.createElement('div'); d.className='chat-msg '+role;
+function chatAppend(role,text,hasPhoto=false){
+  const c=$('chat-messages'), d=document.createElement('div'); d.className='chat-msg '+role;
   d.innerHTML=`<div class="sender">${role==='user'?'You':'Advisor'}</div><div class="chat-bubble">${hasPhoto?'📷 ':''}${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
-async function sendChat() {
-  const input=$('chat-input'), msg=input.value.trim();
-  if(!msg&&!chatB64) return;
-  const hasPhoto=!!chatB64;
-  chatAppend('user',msg||'(photo)',hasPhoto); input.value='';
+async function sendChat(){
+  const input=$('chat-input'), msg=input.value.trim(); if(!msg&&!chatB64) return;
+  const hasPhoto=!!chatB64; chatAppend('user',msg||'(photo)',hasPhoto); input.value='';
   $('send-btn').disabled=true;
   const ld=document.createElement('div'); ld.className='chat-msg ai'; ld.id='ld';
   ld.innerHTML='<div class="sender">Advisor</div><div class="chat-bubble"><span class="spinner dark"></span></div>';
   $('chat-messages').appendChild(ld); $('chat-messages').scrollTop=99999;
 
   const toolSum=tools.length?tools.map(t=>`${t.name}${t.brand?' ('+t.brand+')':''}${t.location?' @ '+t.location:''}`).join(', '):'No tools inventoried yet';
-  const projSum=projects.length?projects.slice(0,20).map(p=>`[${p.ptype==='past'?'Past':p.status}] ${p.name}${p.wood?' — '+p.wood:''}${p.year?' ('+p.year+')':''}${(p.tags||[]).length?' ['+p.tags.join(',')+']':''}${p.lessons?'\nLessons: '+p.lessons:''}`).join('\n'):'No projects logged yet';
+  const projSum=projects.length?projects.slice(0,25).map(p=>`[${p.status}] ${p.name}${p.wood?' — '+p.wood:''}${(p.tags||[]).length?' ['+p.tags.join(',')+']':''}${p.lessons?'\nLessons: '+p.lessons:''}`).join('\n'):'No projects logged yet';
 
-  const sys=`You are an expert woodworking advisor for Ed Grasse, an intermediate woodworker.
+  const sys=`You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
 
 TOOL INVENTORY (ONLY suggest these tools — never recommend tools not on this list):
 ${toolSum}
@@ -1118,28 +1181,25 @@ ${projSum}
 SKILL LEVEL: Intermediate — understands joinery, reads plans, operates shop tools safely.
 Be practical, specific, concise. Use bullet points for steps. Draw on project history for personalized advice.`;
 
-  const uc=[];
-  if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:chatMime,data:chatB64}});
+  const uc=[]; if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:chatMime,data:chatB64}});
   uc.push({type:"text",text:msg||"Analyze this woodworking image — identify wood species, grain, defects, or describe what you see and provide relevant advice."});
 
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:uc}]})
-    });
-    const d=await res.json();
-    $('ld')?.remove();
-    chatAppend('ai',d.content?.[0]?.text||'Sorry, no response. Please try again.');
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:uc}]})});
+    const d=await res.json(); $('ld')?.remove(); chatAppend('ai',d.content?.[0]?.text||'Sorry, no response. Try again.');
   } catch(e){ $('ld')?.remove(); chatAppend('ai','⚠️ Connection error. Check your API key and internet.'); }
   $('send-btn').disabled=false; clearChatPhoto();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────────────────
+// Add Inventory sheet support to Apps Script — note in console
+console.log('EG Custom Woodworking App loaded. Inventory data stored locally + sheet sync.');
+setAddType('tool');
 rebuildCustomTags();
 renderToolChips();
 renderAllPLists();
 renderToolList();
+renderInvList();
 </script>
 </body>
 </html>
