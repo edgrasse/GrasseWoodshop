@@ -760,7 +760,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 // CONFIG
 // ════════════════════════════════════════════════════════════════
 const SCRIPT_URL    = "https://script.google.com/macros/s/AKfycby83e0AXHphq8hPTB2rOWVGedpBq9zrNi083BvmdmXqRZzll7ccS1HenCy9JZ-D_guN/exec";
-const ANTHROPIC_KEY = "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";
+const WORKER_URL   = "https://egcw-proxy.ed-53c.workers.dev";
 const STORAGE_KEY   = 'egcw_v5'; // bumped to clear duplicate data from previous builds
 
 // ════════════════════════════════════════════════════════════════
@@ -1542,9 +1542,9 @@ async function scanToolPhoto(ev){
     const b64 = await imageFileToJpegB64(file);
     stat.innerHTML='<span class="spinner dark"></span> Identifying tool...';
 
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch(WORKER_URL,{
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,
         messages:[{role:"user",content:[
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
@@ -1586,7 +1586,7 @@ async function getMaintTip(){
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name first','err');return;}
   const btn=$('maint-tip-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Getting tips...';
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,messages:[{role:"user",content:`Practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' ('+gv('t-model')+')':''} (${gv('t-category')}). Intermediate woodworker. Bullet points: cleaning freq, lubrication product & interval, blade/belt/part replacement, safety checks, model tips. Concise.`}]})});
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,messages:[{role:"user",content:`Practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' ('+gv('t-model')+')':''} (${gv('t-category')}). Intermediate woodworker. Bullet points: cleaning freq, lubrication product & interval, blade/belt/part replacement, safety checks, model tips. Concise.`}]})});
     const d=await res.json(), tip=d.content?.[0]?.text||'No tips available.';
     $('maint-tip-result').innerHTML=`<div class="maint-tip-box"><div class="tip-hdr">🤖 AI Maintenance Schedule</div>${tip.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
   } catch(e){ $('maint-tip-result').innerHTML='<div style="color:var(--red);font-size:13px;">⚠️ Could not get tips.</div>'; }
@@ -1711,7 +1711,7 @@ async function bulkScan(ev){
   $('bulk-results').prepend(el);
   try {
     const b64 = await imageFileToJpegB64(file);
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
     const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
     el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;">
       <div style="font-weight:600;font-size:14px;margin-bottom:3px;">${p.name||'Unknown Tool'}</div>
@@ -1867,7 +1867,7 @@ Be practical, specific, concise. Use bullet points for steps.`;
   const uc=[]; if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:chatMime,data:chatB64}});
   uc.push({type:"text",text:msg||"Analyze this woodworking image — identify wood species, grain, defects, or describe what you see and provide relevant advice."});
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:sys,messages:[{role:"user",content:uc}]})});
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:sys,messages:[{role:"user",content:uc}]})});
     const d=await res.json(); $('ld')?.remove(); chatAppend('ai',d.content?.[0]?.text||'Sorry, no response. Try again.');
   } catch(e){ $('ld')?.remove(); chatAppend('ai','⚠️ Connection error. Check your API key and internet.'); }
   $('send-btn').disabled=false; clearChatPhoto();
