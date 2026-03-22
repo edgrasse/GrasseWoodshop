@@ -1121,8 +1121,18 @@ function showPTab(s) {
     $('psub-'+x).style.display = x===s?'block':'none';
     $('ptab-'+x).classList.toggle('active', x===s);
   });
-  if(s==='add') renderToolChips();
-  else renderAllPLists();
+  if(s==='add') {
+    // Only reset if NOT coming from an editProject call (edit sets p-edit-id before calling showPTab)
+    setTimeout(()=>{
+      if(!gv('p-edit-id')) {
+        selToolIds = [];
+        selTags = [];
+        clearProjForm();
+      }
+      renderToolChips();
+      rebuildCustomTags();
+    }, 0);
+  } else renderAllPLists();
 }
 
 function showSTab(s) {
@@ -1132,6 +1142,16 @@ function showSTab(s) {
   });
   if(s==='tools')     renderToolList();
   if(s==='inventory') renderInvList();
+  if(s==='add') {
+    // Always start fresh — clear forms and reset save buttons
+    clearToolForm();
+    clearInvForm();
+    setAddType('tool');
+    const toolSaveBtn = document.querySelector('#add-tool-form .btn-primary.btn-full');
+    if(toolSaveBtn){ toolSaveBtn.textContent='💾 Save Tool'; toolSaveBtn.onclick=saveTool; }
+    const invSaveBtn = document.querySelector('#add-inv-form .btn-primary.btn-full');
+    if(invSaveBtn){ invSaveBtn.textContent='💾 Save Item'; invSaveBtn.onclick=saveInvItem; }
+  }
 }
 
 function showRTab(s) {
@@ -1412,7 +1432,14 @@ function clearProjForm(){
   $('p-drive-prev').style.display='none'; $('p-photo-grid').innerHTML=''; $('p-drive-save-row').style.display='none';
   document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>c.classList.remove('selected'));
   $('pform-title').textContent='📋 Add Project';
-  projFiles=[]; selTags=[]; rebuildCustomTags(); renderToolChips();
+  projFiles=[]; selTags=[]; 
+  // Fully reset tool selections so nothing carries over from previous entry
+  selToolIds=[];
+  rebuildCustomTags(); 
+  renderToolChips();
+  // Reset save button in case we were editing
+  const saveBtn=document.querySelector('#psub-add .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Project'; saveBtn.onclick=saveProject; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1518,6 +1545,10 @@ function clearToolForm(){
   $('t-maint-toggle').checked=false; $('t-maint-sec').style.display='none';
   $('t-photo-wrap').style.display='none'; $('t-drive-prev').style.display='none';
   $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML=''; toolFile=null;
+  // Always reset the save button to its original state
+  const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
+  if($('scan-file')) $('scan-file').dataset.editId='';
 }
 
 function renderToolList(){
