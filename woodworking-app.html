@@ -231,6 +231,13 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 /* ARCHIVED BADGE */
 .badge-archived { background:#F0E8FF; color:#6B3FA0; }
 
+/* SET SCAN */
+.set-item-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.set-item-row:last-child { border-bottom:none; }
+.set-item-name { flex:1; font-size:14px; color:var(--text); }
+.set-item-cat  { font-size:11px; color:var(--muted); }
+.set-actions   { display:flex; gap:8px; margin-top:12px; }
+
 /* FAQ */
 .faq-item { border-bottom:1px solid var(--border); padding:2px 0; }
 .faq-item:last-child { border-bottom:none; }
@@ -358,8 +365,11 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       </div>
       <div class="form-row">
         <label>Tools Used</label>
-        <div id="tool-chips" class="tag-row"><em style="font-size:12px;color:var(--muted);">Add tools in the Shop tab first</em></div>
-        <input type="text" id="p-tool-notes" placeholder="Additional tool notes..." style="margin-top:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="toggleToolChips()" id="tool-chips-toggle" style="margin-bottom:8px;">+ Show Tools</button>
+        <div id="tool-chips-wrap" style="display:none;">
+          <div id="tool-chips" class="tag-row"><em style="font-size:12px;color:var(--muted);">Add tools in the Shop tab first</em></div>
+          <input type="text" id="p-tool-notes" placeholder="Additional tool notes..." style="margin-top:8px;">
+        </div>
       </div>
       <div class="form-row">
         <label>Project Photos</label>
@@ -632,6 +642,10 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <div><div class="blbl">📍 Scanning location</div><div class="bname" id="bulk-loc-name">—</div></div>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('b-photo').click()">📷 Take Photo</button>
         </div>
+        <div class="toggle-row" style="padding:6px 0 10px;">
+          <input type="checkbox" id="b-set-mode">
+          <label for="b-set-mode">📦 This photo is a <strong>set of tools</strong> — identify all items</label>
+        </div>
         <input type="file" id="b-photo" accept="image/*" style="display:none" onchange="bulkScan(event)">
         <div id="bulk-results"></div>
       </div>
@@ -689,6 +703,12 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         <label>Link to Project (optional)</label>
         <select id="r-project">
           <option value="">— No project link —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Link to Tool (optional)</label>
+        <select id="r-tool">
+          <option value="">— No tool link —</option>
         </select>
       </div>
       <button class="btn btn-primary btn-full" onclick="saveResource()">💾 Save Resource</button>
@@ -894,7 +914,7 @@ async function syncFromSheet() {
       resources = rData.rows.map(r => ({
         id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
         title:r[2]||'', type:r[3]||'Articles', url:r[4]||'',
-        notes:r[5]||'', ideaNote:r[6]||'', projectId:r[7]||''
+        notes:r[5]||'', ideaNote:r[6]||'', projectId:r[7]||'', toolId:r[8]||''
       })).filter(r => { if(seen.has(r.id)) return false; seen.add(r.id); return true; });
     }
 
@@ -1129,6 +1149,7 @@ function editResource(id) {
   $('r-notes').value    = r.notes    ||'';
   $('r-idea-note').value= r.ideaNote ||'';
   $('r-project').value  = r.projectId||'';
+  if($('r-tool')) $('r-tool').value = r.toolId||'';
   onResTypeChg(); onResUrlInput();
   const saveBtn=document.querySelector('#rsub-add .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Update Resource'; saveBtn.onclick=()=>updateResource(id); }
@@ -1139,7 +1160,7 @@ function editResource(id) {
 function updateResource(id) {
   const title=gv('r-title'); if(!title){showStatus('⚠️ Enter a title','err');return;}
   const idx=resources.findIndex(x=>x.id===id); if(idx===-1) return;
-  resources[idx]={...resources[idx],title,type:gv('r-type'),url:gv('r-url'),notes:gv('r-notes'),ideaNote:gv('r-idea-note'),projectId:gv('r-project')};
+  resources[idx]={...resources[idx],title,type:gv('r-type'),url:gv('r-url'),notes:gv('r-notes'),ideaNote:gv('r-idea-note'),projectId:gv('r-project'),toolId:gv('r-tool')};
   saveLocal();
   toSheet({action:'save',sheet:'Resources',id,timestamp:new Date(resources[idx].ts).toISOString(),title:resources[idx].title,type:resources[idx].type,url:resources[idx].url,notes:resources[idx].notes,ideaNote:resources[idx].ideaNote,projectId:resources[idx].projectId});
   showStatus('✅ Resource updated!','ok'); clearResForm(); showRTab('browse'); renderResList();
@@ -1479,6 +1500,11 @@ function clearProjForm(){
   $('p-drive-prev').style.display='none'; $('p-photo-grid').innerHTML=''; $('p-drive-save-row').style.display='none';
   document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>c.classList.remove('selected'));
   $('pform-title').textContent='📋 Add Project';
+  // Reset tools section to hidden
+  const wrap = $('tool-chips-wrap');
+  const btn  = $('tool-chips-toggle');
+  if(wrap) wrap.style.display = 'none';
+  if(btn)  btn.textContent = '+ Show Tools';
   projFiles=[]; selTags=[]; 
   // Fully reset tool selections so nothing carries over from previous entry
   selToolIds=[];
@@ -1492,7 +1518,14 @@ function clearProjForm(){
 // ════════════════════════════════════════════════════════════════
 // TOOLS
 // ════════════════════════════════════════════════════════════════
-function toggleMaintSec(){ $('t-maint-sec').style.display=$('t-maint-toggle').checked?'block':'none'; }
+function toggleToolChips() {
+  const wrap = $('tool-chips-wrap');
+  const btn  = $('tool-chips-toggle');
+  const open = wrap.style.display !== 'none';
+  wrap.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '+ Show Tools' : '− Hide Tools';
+  if (!open) renderToolChips();
+}
 
 // Convert any image (including HEIC) to JPEG base64 via canvas
 function imageFileToJpegB64(file) {
@@ -1705,24 +1738,99 @@ function renderInvList(){
 // ════════════════════════════════════════════════════════════════
 async function bulkScan(ev){
   const file=ev.target.files[0]; if(!file) return;
-  const loc=fullLoc('b'), eid='bs-'+genId(), dataUrl=await f2url(file);
+  const loc=fullLoc('b');
+  const isSetMode = $('b-set-mode')?.checked;
+  if(isSetMode) await bulkScanSet(file, loc);
+  else await bulkScanSingle(file, loc);
+  ev.target.value='';
+}
+
+async function bulkScanSingle(file, loc){
+  const eid='bs-'+genId(), dataUrl=await f2url(file);
   const el=document.createElement('div'); el.className='card'; el.id=eid;
   el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span class="spinner dark"></span> Identifying tool...</div>`;
   $('bulk-results').prepend(el);
   try {
-    const b64 = await imageFileToJpegB64(file);
+    const b64=await imageFileToJpegB64(file);
     const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
     const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
     el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;">
       <div style="font-weight:600;font-size:14px;margin-bottom:3px;">${p.name||'Unknown Tool'}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:7px;">${p.brand?p.brand+' · ':''}${p.model||''}<br>📍 ${loc}</div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary btn-sm" onclick="confirmBulk('${eid}','${encodeURIComponent(JSON.stringify(p))}','${encodeURIComponent(loc)}')">✅ Add to Inventory</button>
+        <button class="btn btn-primary btn-sm" onclick="confirmBulk('${eid}','${encodeURIComponent(JSON.stringify(p))}','${encodeURIComponent(loc)}')">✅ Add to Tools</button>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">✕ Skip</button>
       </div>`;
   } catch(e){ el.innerHTML=`<div style="font-size:13px;color:var(--red);">⚠️ Could not identify. <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">Dismiss</button></div>`; }
-  ev.target.value='';
 }
+
+async function bulkScanSet(file, loc){
+  const eid='bs-'+genId(), dataUrl=await f2url(file);
+  const el=document.createElement('div'); el.className='card'; el.id=eid;
+  el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:130px;object-fit:cover;border-radius:7px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span class="spinner dark"></span> Identifying all tools in this photo...</div>`;
+  $('bulk-results').prepend(el);
+  try {
+    const b64=await imageFileToJpegB64(file);
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,messages:[{role:"user",content:[
+      {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+      {type:"text",text:`You are looking at a photo of multiple woodworking tools or a tool set. Identify every individual item you can see. Return ONLY a JSON array (no markdown):\n[{"name":"","brand":"","category":"","condition":""},...]\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service\nFor sets like drill bits or chisels, list each size/type individually if visible, or as a set if sizes are not clear.\nReturn ONLY the JSON array.`}
+    ]}]})});
+    const d=await res.json();
+    let items=[];
+    try{ items=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'[]'); }catch(e){}
+    if(!Array.isArray(items)||!items.length){ el.innerHTML=`<div style="font-size:13px;color:var(--red);">⚠️ Could not identify items. Try a clearer photo. <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">Dismiss</button></div>`; return; }
+    const rows=items.map((item,i)=>`
+      <div class="set-item-row">
+        <input type="checkbox" id="si-${eid}-${i}" checked style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">
+        <div><div class="set-item-name">${item.name||'Unknown'}</div>
+        <div class="set-item-cat">${item.brand?item.brand+' · ':''}${item.category||''} · ${item.condition||'Good'}</div></div>
+      </div>`).join('');
+    el.innerHTML=`
+      <img src="${dataUrl}" style="width:100%;max-height:130px;object-fit:cover;border-radius:7px;margin-bottom:10px;">
+      <div style="font-weight:600;font-size:14px;margin-bottom:6px;">Found ${items.length} item${items.length>1?'s':''} · 📍 ${loc}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Uncheck any items that are incorrect:</div>
+      ${rows}
+      <div class="set-actions">
+        <button class="btn btn-primary btn-sm" onclick="confirmSetIndividual('${eid}','${encodeURIComponent(JSON.stringify(items))}','${encodeURIComponent(loc)}')">✅ Add Individually</button>
+        <button class="btn btn-green btn-sm" onclick="confirmSetAsGroup('${eid}','${encodeURIComponent(JSON.stringify(items))}','${encodeURIComponent(loc)}')">📦 Add as Set</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">✕ Skip</button>
+      </div>`;
+  } catch(e){ el.innerHTML=`<div style="font-size:13px;color:var(--red);">⚠️ Error: ${e.message} <button class="btn btn-secondary btn-sm" onclick="document.getElementById('${eid}').remove()">Dismiss</button></div>`; }
+}
+
+function getCheckedSetItems(eid, items){
+  return items.filter((item,i)=>{ const cb=document.getElementById(`si-${eid}-${i}`); return cb?cb.checked:true; });
+}
+
+function confirmSetIndividual(eid, itemsStr, locStr){
+  const items=JSON.parse(decodeURIComponent(itemsStr)), loc=decodeURIComponent(locStr);
+  const checked=getCheckedSetItems(eid, items);
+  if(!checked.length){ showStatus('⚠️ No items selected','err'); return; }
+  checked.forEach(item=>{
+    const tool={id:genId(),ts:Date.now(),cat:item.category||'Other',name:item.name||'Unknown',brand:item.brand||'',model:'',serial:'',date:'',price:'',location:loc,manual:'',condition:item.condition||'Good',notes:'Added via set scan',driveLink:'',hasMaint:false,maintLog:[]};
+    tools.push(tool);
+    toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,location:tool.location,condition:tool.condition,notes:tool.notes,hasMaintLog:'No'});
+  });
+  saveLocal();
+  $(eid).innerHTML=`<div style="font-size:13px;color:var(--green);padding:4px 0;">✅ Added ${checked.length} tool${checked.length>1?'s':''} individually at ${loc}</div>`;
+  showStatus(`✅ ${checked.length} tools added!`,'ok'); renderToolList();
+}
+
+function confirmSetAsGroup(eid, itemsStr, locStr){
+  const items=JSON.parse(decodeURIComponent(itemsStr)), loc=decodeURIComponent(locStr);
+  const checked=getCheckedSetItems(eid, items);
+  if(!checked.length){ showStatus('⚠️ No items selected','err'); return; }
+  const suggested=(checked[0]?.name?.replace(/[^a-zA-Z\s]/g,'').trim()||'Tool')+' Set';
+  const setName=prompt('Name for this set?\n(e.g. "Hammer Set", "Forstner Bit Set")', suggested);
+  if(!setName) return;
+  const itemList=checked.map(i=>i.name).join(', ');
+  const tool={id:genId(),ts:Date.now(),cat:checked[0]?.category||'Other',name:setName,brand:checked[0]?.brand||'',model:'',serial:'',date:'',price:'',location:loc,manual:'',condition:'Good',notes:`Set contains: ${itemList}`,driveLink:'',hasMaint:false,maintLog:[]};
+  tools.push(tool); saveLocal();
+  toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,location:tool.location,condition:tool.condition,notes:tool.notes,hasMaintLog:'No'});
+  $(eid).innerHTML=`<div style="font-size:13px;color:var(--green);padding:4px 0;">✅ "${setName}" (${checked.length} items) added at ${loc}</div>`;
+  showStatus(`✅ ${setName} added!`,'ok'); renderToolList();
+}
+
 function confirmBulk(eid,pStr,locStr){
   const p=JSON.parse(decodeURIComponent(pStr)), loc=decodeURIComponent(locStr);
   const tool={id:genId(),ts:Date.now(),cat:p.category||'Other',name:p.name||'Unknown',brand:p.brand||'',model:p.model||'',serial:p.serial||'',date:'',price:'',location:loc,manual:'',condition:p.condition||'Good',notes:'Added via bulk scan',driveLink:'',hasMaint:false,maintLog:[]};
@@ -1750,20 +1858,28 @@ function populateProjectDropdown() {
   sel.innerHTML='<option value="">— No project link —</option>';
   projects.forEach(p=>{ const opt=document.createElement('option'); opt.value=p.id; opt.textContent=`${p.status==='Completed'?'✅':p.status==='In Progress'?'⚡':'📋'} ${p.name}`; sel.appendChild(opt); });
   sel.value=cur;
+
+  const tsel=$('r-tool'); if(!tsel) return;
+  const tcur=tsel.value;
+  tsel.innerHTML='<option value="">— No tool link —</option>';
+  tools.forEach(t=>{ const opt=document.createElement('option'); opt.value=t.id; opt.textContent=`${t.cat==='Power Tools'?'⚡':t.cat==='Hand Tools'?'🔨':'🔧'} ${t.name}${t.brand?' ('+t.brand+')':''}`; tsel.appendChild(opt); });
+  tsel.value=tcur;
 }
 
 function saveResource() {
   const title=gv('r-title'); if(!title){showStatus('⚠️ Enter a title','err');return;}
-  const res={id:genId(),ts:Date.now(),title,type:gv('r-type'),url:gv('r-url'),notes:gv('r-notes'),ideaNote:gv('r-idea-note'),projectId:gv('r-project')};
+  const res={id:genId(),ts:Date.now(),title,type:gv('r-type'),url:gv('r-url'),notes:gv('r-notes'),ideaNote:gv('r-idea-note'),projectId:gv('r-project'),toolId:gv('r-tool')};
   resources.unshift(res); saveLocal();
-  toSheet({action:'save',sheet:'Resources',id:res.id,timestamp:new Date(res.ts).toISOString(),title:res.title,type:res.type,url:res.url,notes:res.notes,ideaNote:res.ideaNote,projectId:res.projectId});
+  toSheet({action:'save',sheet:'Resources',id:res.id,timestamp:new Date(res.ts).toISOString(),title:res.title,type:res.type,url:res.url,notes:res.notes,ideaNote:res.ideaNote,projectId:res.projectId,toolId:res.toolId});
   showStatus('✅ Resource saved!','ok');
   clearResForm(); showRTab('browse'); renderResList();
 }
 
 function clearResForm(){
   ['r-title','r-url','r-notes','r-idea-note'].forEach(id=>{const e=$(id);if(e)e.value='';});
-  $('r-type').value='Plans & Documents'; $('r-project').value='';
+  $('r-type').value='Plans & Documents';
+  if($('r-project')) $('r-project').value='';
+  if($('r-tool'))    $('r-tool').value='';
   $('r-yt-preview').style.display='none'; $('r-drive-preview').style.display='none';
   $('r-idea-note-row').style.display='none';
 }
@@ -1805,6 +1921,7 @@ function renderResList() {
             ${!yt&&dt?`<img src="${dt}" class="res-thumb" onerror="this.style.display='none'">`:''}
             ${r.url?`<a href="${r.url}" target="_blank" class="res-link">🔗 Open ${r.type==='Videos'?'Video':r.type==='Plans & Documents'?'Document':'Link'} ↗</a>`:''}
             ${linkedProj?`<div class="res-proj-tag">📋 ${linkedProj.name}</div>`:''}
+            ${r.toolId?`<div class="res-proj-tag" style="background:#E8F5E3;color:#3A6B2A;">🔧 ${tools.find(t=>t.id===r.toolId)?.name||'Tool'}</div>`:''}
           </div>
         </div>
       </div>`;
@@ -1915,7 +2032,7 @@ const FAQ_DATA = [
   },
   {
     q: 'The tool scan filled in the fields but showed an API error — what happened?',
-    a: `This means your Anthropic API key is either missing or invalid in the HTML file. The scan actually worked (fields were filled) but the connection to the AI was rejected.<br><br>To fix: open <strong>woodworking-app.html</strong> in Notepad, press <strong>Ctrl+H</strong>, find <code>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</code> and replace it with your actual key from the Notepad file on your desktop. Save and re-upload to GitHub.`
+    a: `This means your Anthropic API key is missing or expired in Cloudflare. The image conversion worked but the AI connection was rejected.<br><br>To fix: go to <strong>cloudflare.com → Workers & Pages → egcw-proxy → Settings → Variables and Secrets</strong> → Rotate <code>ANTHROPIC_KEY</code> and paste a fresh key from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. No HTML changes needed.`
   },
   {
     q: 'How does the Bulk Scan feature work?',
@@ -1958,12 +2075,32 @@ const FAQ_DATA = [
     a: `Tap <strong>Resources</strong> → <strong>➕ Add</strong>. Enter a title, set Type to <strong>🎥 Videos & YouTube</strong>, and paste the YouTube URL. A thumbnail preview will appear automatically. Add notes if you want, then tap <strong>💾 Save Resource</strong>.`
   },
   {
-    q: 'How do I link a resource to a project?',
-    a: `When adding or editing a resource, there's an optional <strong>Link to Project</strong> dropdown at the bottom of the form. Select any of your existing projects. The resource card will then show which project it's linked to.`
+    q: 'How do I link a resource to a project AND a tool?',
+    a: `When adding or editing a resource, there are two optional link dropdowns at the bottom of the form — <strong>Link to Project</strong> and <strong>Link to Tool</strong>. You can fill in one, both, or neither. The resource card will show a purple tag for the linked project and a green tag for the linked tool.`
   },
   {
-    q: 'How do I save plans or documents?',
-    a: `Upload your PDF or document to your <em>Grasse Workshop → Projects</em> folder in Google Drive. Then add a Resource, set Type to <strong>📄 Plans & Documents</strong>, and paste the Google Drive share link. The document will be accessible with a single tap from the resource card.`
+    q: 'How do I save plans or documents from Google Drive?',
+    a: `Upload your PDF or document to your <em>Grasse Workshop → Plans and Ideas</em> folder in Google Drive. Then:<ul><li>Tap the three dots next to the file → <strong>Share → Copy Link</strong></li><li>Go to Resources → ➕ Add → set Type to <strong>📄 Plans & Documents</strong></li><li>Paste the link — a preview will appear automatically</li><li>Add a title and any notes, then tap Save</li></ul>`
+  },
+  {
+    q: 'How do I save a tool manual or sharpening guide?',
+    a: `Add it as a Resource and link it to the specific tool using the <strong>Link to Tool</strong> dropdown. Set the type to <strong>📐 Techniques & How-Tos</strong> for guides, or <strong>📄 Plans & Documents</strong> for manuals. The green tool tag will appear on the resource card so you can find it easily.`
+  },
+  {
+    q: 'How do I edit or delete a resource?',
+    a: `Tap the <strong>⋯ button</strong> in the top right corner of any resource card. Select <strong>✏️ Edit</strong> to update any field, or <strong>🗑️ Delete</strong> to remove it. Deletion shows a confirmation prompt before removing the item from the app.`
+  },
+
+  { section: '🔧 Shop — Bulk Scan' },
+  {
+    q: 'How do I scan a single tool with Bulk Scan?',
+    a: `Go to <strong>Shop → 📍 Bulk Scan</strong>. Select your location, make sure the <em>"This photo is a set"</em> toggle is <strong>off</strong>. Tap <strong>📷 Take Photo</strong> — AI identifies the tool and shows you a preview. Tap <strong>✅ Add to Tools</strong> to confirm or <strong>✕ Skip</strong> to discard.`
+  },
+  {
+    q: 'How do I scan a set of tools (hammers, lathe tools, bits, etc.)?',
+    a: `Go to <strong>Shop → 📍 Bulk Scan</strong>. Select your location, then check <strong>"📦 This photo is a set of tools"</strong>. Take one photo of the whole set. AI will identify every item it can see and list them with checkboxes.<br><br>
+    <ul><li>Uncheck any items it got wrong</li><li>Tap <strong>✅ Add Individually</strong> to save each as its own tool entry</li><li>Or tap <strong>📦 Add as Set</strong> to save as one grouped entry (e.g. "Hammer Set") — you'll be prompted to name it</li></ul>
+    <div class="faq-tip">💡 For large sets like Forstner bits where sizes aren't visible, use Add as Set. For a hammer collection where each type is distinct, use Add Individually.</div>`
   },
 
   { section: '🤖 AI Advisor' },
@@ -1977,22 +2114,28 @@ const FAQ_DATA = [
   },
   {
     q: 'The Advisor isn\'t responding — what\'s wrong?',
-    a: `Most likely causes:<ul><li><strong>Invalid API key</strong> — check that your Anthropic API key is correctly set in the HTML file (see the tool scan FAQ above)</li><li><strong>Spending limit reached</strong> — check your usage at console.anthropic.com → Billing</li><li><strong>No internet</strong> — the Advisor requires an active connection</li></ul>`
+    a: `Most likely causes:<ul><li><strong>API key missing or expired</strong> — go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys and confirm a key exists and is Active. If not, create a new one and update it in Cloudflare (see below).</li><li><strong>Spending limit reached</strong> — check console.anthropic.com → Billing</li><li><strong>No internet</strong> — the Advisor requires an active connection</li></ul>`
   },
 
   { section: '⚙️ App Settings & Updates' },
   {
     q: 'How do I know I\'m looking at the latest version of the app?',
-    a: `Check the <strong>build date and time</strong> shown in the header under "EG Custom Woodworking". After uploading a new HTML file to GitHub, wait 60–90 seconds and hard refresh the page. If the build time matches the latest version, you're current.`
+    a: `Check the <strong>build date and time</strong> shown in the header under "EG Custom Woodworking" — it shows the actual time the file was last uploaded to GitHub. After uploading a new version, wait 60–90 seconds and hard refresh. If the time matches, you're on the latest build.`
   },
   {
     q: 'How do I update the app with a new version?',
-    a: `<ul><li>Download the new <strong>woodworking-app.html</strong> file</li><li>Open it in <strong>Notepad</strong> → press <strong>Ctrl+H</strong></li><li>Find: <code>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</code> → Replace with your actual API key (saved in Notepad on your desktop)</li><li>Save the file</li><li>Go to your GitHub repo → click <strong>woodworking-app.html</strong> → click the pencil ✏️ icon → or drag and drop the new file to upload</li><li>Wait 60–90 seconds → refresh the app</li></ul>
-    <div class="faq-tip">💡 Your data is stored in localStorage on your device AND in Google Sheets, so it's never lost when you update the app.</div>`
+    a: `<ul><li>Download the new <strong>woodworking-app.html</strong> file</li><li>Upload it directly to your GitHub repo — no API key swap needed anymore</li><li>Wait 60–90 seconds → refresh the app</li></ul>
+    <div class="faq-tip">💡 The API key is now stored securely in Cloudflare — it never needs to be in the HTML file. Just upload and go.</div>`
   },
   {
-    q: 'Where is my Anthropic API key saved?',
-    a: `Your API key is saved in a <strong>Notepad file on your desktop</strong>. Open that file, copy the key, and use it when doing the Ctrl+H swap in the HTML file.`
+    q: 'Where is my Anthropic API key stored now?',
+    a: `Your API key is stored securely in your <strong>Cloudflare Worker</strong> as an encrypted secret — it is no longer in the HTML file at all.<br><br>
+    A copy of the key is also saved in a <strong>Notepad file on your desktop</strong> as a backup.<br><br>
+    To update or replace the key: go to <strong>cloudflare.com → Workers & Pages → egcw-proxy → Settings → Variables and Secrets</strong> → Rotate <code>ANTHROPIC_KEY</code> and paste the new key.`
+  },
+  {
+    q: 'How does the Cloudflare Worker fit in?',
+    a: `The Cloudflare Worker (<em>egcw-proxy</em>) acts as a secure middleman between the app and the Anthropic AI. When you use any AI feature (tool scan, Advisor chat, maintenance tips, set scan), the app sends the request to the Worker, which adds your API key and forwards it to Anthropic.<br><br>This keeps your API key off GitHub and out of the HTML file entirely.`
   },
   {
     q: 'How does the Google Sheet fit in?',
