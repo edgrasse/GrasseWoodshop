@@ -218,6 +218,19 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .modal-box h3 { font-family:'Playfair Display',serif; font-size:18px; margin-bottom:10px; }
 .modal-box p { font-size:13px; color:var(--muted); margin-bottom:13px; }
 
+/* CARD MENU (⋯ button) */
+.card-menu-wrap { position:relative; }
+.card-menu-btn { background:none; border:none; font-size:18px; color:var(--muted); cursor:pointer; padding:2px 6px; border-radius:6px; line-height:1; }
+.card-menu-btn:hover { background:var(--warm); color:var(--charcoal); }
+.card-menu-dropdown { position:absolute; right:0; top:28px; background:var(--white); border:1.5px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-lg); z-index:50; min-width:130px; overflow:hidden; animation:fadeIn 0.15s ease; }
+.card-menu-dropdown button { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; border:none; background:none; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; text-align:left; }
+.card-menu-dropdown button:hover { background:var(--warm); }
+.card-menu-dropdown button.danger { color:var(--red); }
+.card-menu-dropdown .menu-divider { height:1px; background:var(--border); margin:2px 0; }
+
+/* ARCHIVED BADGE */
+.badge-archived { background:#F0E8FF; color:#6B3FA0; }
+
 /* MISC */
 .spinner { display:inline-block; width:15px; height:15px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; }
 .spinner.dark { border-color:rgba(61,43,31,0.2); border-top-color:var(--accent); }
@@ -884,6 +897,213 @@ function renderAll() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// CARD MENU — ⋯ button used on all cards
+// ════════════════════════════════════════════════════════════════
+function cardMenu(btnEl, items) {
+  // Close any open menus first
+  closeAllMenus();
+  const wrap = btnEl.closest('.card-menu-wrap');
+  const existing = wrap.querySelector('.card-menu-dropdown');
+  if (existing) { existing.remove(); return; }
+  const dropdown = document.createElement('div');
+  dropdown.className = 'card-menu-dropdown';
+  dropdown.innerHTML = items.map(item =>
+    item === '---'
+      ? '<div class="menu-divider"></div>'
+      : `<button class="${item.danger?'danger':''}" onclick="closeAllMenus();${item.action}">${item.icon} ${item.label}</button>`
+  ).join('');
+  wrap.appendChild(dropdown);
+  // Close on outside tap
+  setTimeout(() => document.addEventListener('click', closeAllMenus, {once:true}), 10);
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.card-menu-dropdown').forEach(d => d.remove());
+}
+
+function menuBtn(id, type) {
+  // Returns the ⋯ button HTML for a given item
+  const items = menuItemsFor(id, type);
+  const encoded = encodeURIComponent(JSON.stringify(items));
+  return `<div class="card-menu-wrap" style="flex-shrink:0;">
+    <button class="card-menu-btn" onclick="event.stopPropagation();cardMenuById('${id}','${type}',this)">⋯</button>
+  </div>`;
+}
+
+function cardMenuById(id, type, btnEl) {
+  cardMenu(btnEl, menuItemsFor(id, type));
+}
+
+function menuItemsFor(id, type) {
+  const isArchived = isItemArchived(id, type);
+  const items = [
+    { icon:'✏️', label:'Edit',    action:`editItem('${id}','${type}')` },
+    '---',
+    isArchived
+      ? { icon:'📤', label:'Unarchive', action:`archiveItem('${id}','${type}',false)` }
+      : { icon:'📦', label:'Archive',   action:`archiveItem('${id}','${type}',true)`, danger:false }
+  ];
+  return items;
+}
+
+function isItemArchived(id, type) {
+  const item = findItem(id, type);
+  return item ? !!item.archived : false;
+}
+
+function findItem(id, type) {
+  if (type==='project')   return projects.find(x=>x.id===id);
+  if (type==='tool')      return tools.find(x=>x.id===id);
+  if (type==='inventory') return inventory.find(x=>x.id===id);
+  if (type==='resource')  return resources.find(x=>x.id===id);
+  return null;
+}
+
+// ── ARCHIVE / UNARCHIVE ───────────────────────────────────────────
+function archiveItem(id, type, archive) {
+  const item = findItem(id, type);
+  if (!item) return;
+  item.archived = archive;
+  saveLocal();
+  toSheet({action:'save', sheet:sheetForType(type), id, archived:archive?'Yes':'No', name:item.name||item.title||''});
+  showStatus(archive ? '📦 Archived' : '📤 Unarchived', 'ok');
+  rerenderFor(type);
+}
+
+function sheetForType(type) {
+  return {project:'Projects',tool:'Tools',inventory:'Inventory',resource:'Resources'}[type]||'Projects';
+}
+
+function rerenderFor(type) {
+  if(type==='project')   renderAllPLists();
+  if(type==='tool')      renderToolList();
+  if(type==='inventory') renderInvList();
+  if(type==='resource')  renderResList();
+}
+
+// ── EDIT DISPATCHER ───────────────────────────────────────────────
+function editItem(id, type) {
+  if(type==='project')   editProject(id);
+  if(type==='tool')      editTool(id);
+  if(type==='inventory') editInvItem(id);
+  if(type==='resource')  editResource(id);
+}
+
+// ── EDIT TOOL ─────────────────────────────────────────────────────
+function editTool(id) {
+  const t = tools.find(x=>x.id===id); if(!t) return;
+  showTab('shop'); showSTab('add'); setAddType('tool');
+  // Store edit id on a hidden element
+  $('scan-file').dataset.editId = id;
+  $('t-name').value     = t.name     ||'';
+  $('t-brand').value    = t.brand    ||'';
+  $('t-model').value    = t.model    ||'';
+  $('t-serial').value   = t.serial   ||'';
+  $('t-date').value     = t.date     ||'';
+  $('t-price').value    = t.price    ||'';
+  $('t-manual').value   = t.manual   ||'';
+  $('t-notes').value    = t.notes    ||'';
+  $('t-drive-link').value = t.driveLink||'';
+  $('t-category').value = t.cat      ||'Power Tools';
+  $('t-condition').value= t.condition||'Excellent';
+  // Set location — base value
+  const locBase = t.location||'';
+  let baseVal = locBase;
+  if(locBase.startsWith('Third Shop Bench – Drawer')) { baseVal='Third Shop Bench - Drawer'; }
+  else if(locBase.startsWith('Craftsman Shop Bench – Drawer')) { baseVal='Craftsman Shop Bench - Drawer'; }
+  $('t-location').value = baseVal; onLocChg('t');
+  if(baseVal==='Third Shop Bench - Drawer')    $('t-third').value    = locBase.replace('Third Shop Bench – ','');
+  if(baseVal==='Craftsman Shop Bench - Drawer') $('t-craftsman').value = locBase.replace('Craftsman Shop Bench – ','');
+  if(t.driveLink) onDriveLink('t');
+  // Change save button to Update
+  const saveBtn = document.querySelector('#add-tool-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Update Tool'; saveBtn.onclick = ()=>updateTool(id); }
+  $('t-name').scrollIntoView({behavior:'smooth',block:'center'});
+  showStatus('✏️ Editing — make changes and tap Update Tool','',3500);
+}
+
+function updateTool(id) {
+  const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
+  const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
+  const idx=tools.findIndex(x=>x.id===id); if(idx===-1) return;
+  const existing=tools[idx];
+  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link')};
+  if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
+  saveLocal();
+  toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No'});
+  showStatus('✅ Tool updated!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
+  // Reset save button
+  const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
+}
+
+// ── EDIT INVENTORY ────────────────────────────────────────────────
+function editInvItem(id) {
+  const item=inventory.find(x=>x.id===id); if(!item) return;
+  showTab('shop'); showSTab('add'); setAddType('inv');
+  $('i-name').value     = item.name    ||'';
+  $('i-category').value = item.category||'Fasteners';
+  $('i-notes').value    = item.notes   ||'';
+  const locBase=item.location||'';
+  let baseVal=locBase;
+  if(locBase.startsWith('Third Shop Bench – Drawer'))    { baseVal='Third Shop Bench - Drawer'; }
+  if(locBase.startsWith('Craftsman Shop Bench – Drawer')) { baseVal='Craftsman Shop Bench - Drawer'; }
+  $('i-location').value=baseVal; onLocChg('i');
+  if(baseVal==='Third Shop Bench - Drawer')    $('i-third').value    = locBase.replace('Third Shop Bench – ','');
+  if(baseVal==='Craftsman Shop Bench - Drawer') $('i-craftsman').value = locBase.replace('Craftsman Shop Bench – ','');
+  const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Update Item'; saveBtn.onclick=()=>updateInvItem(id); }
+  $('i-name').scrollIntoView({behavior:'smooth',block:'center'});
+  showStatus('✏️ Editing — make changes and tap Update Item','',3500);
+}
+
+function updateInvItem(id) {
+  const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
+  const loc=fullLoc('i'), idx=inventory.findIndex(x=>x.id===id); if(idx===-1) return;
+  inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
+  saveLocal();
+  toSheet({action:'save',sheet:'Inventory',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes});
+  showStatus('✅ Item updated!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
+  const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
+}
+
+// ── EDIT RESOURCE ─────────────────────────────────────────────────
+function editResource(id) {
+  const r=resources.find(x=>x.id===id); if(!r) return;
+  showTab('resources'); showRTab('add'); populateProjectDropdown();
+  $('r-title').value    = r.title    ||'';
+  $('r-type').value     = r.type     ||'Articles';
+  $('r-url').value      = r.url      ||'';
+  $('r-notes').value    = r.notes    ||'';
+  $('r-idea-note').value= r.ideaNote ||'';
+  $('r-project').value  = r.projectId||'';
+  onResTypeChg(); onResUrlInput();
+  const saveBtn=document.querySelector('#rsub-add .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Update Resource'; saveBtn.onclick=()=>updateResource(id); }
+  $('r-title').scrollIntoView({behavior:'smooth',block:'center'});
+  showStatus('✏️ Editing — make changes and tap Update Resource','',3500);
+}
+
+function updateResource(id) {
+  const title=gv('r-title'); if(!title){showStatus('⚠️ Enter a title','err');return;}
+  const idx=resources.findIndex(x=>x.id===id); if(idx===-1) return;
+  resources[idx]={...resources[idx],title,type:gv('r-type'),url:gv('r-url'),notes:gv('r-notes'),ideaNote:gv('r-idea-note'),projectId:gv('r-project')};
+  saveLocal();
+  toSheet({action:'save',sheet:'Resources',id,timestamp:new Date(resources[idx].ts).toISOString(),title:resources[idx].title,type:resources[idx].type,url:resources[idx].url,notes:resources[idx].notes,ideaNote:resources[idx].ideaNote,projectId:resources[idx].projectId});
+  showStatus('✅ Resource updated!','ok'); clearResForm(); showRTab('browse'); renderResList();
+  const saveBtn=document.querySelector('#rsub-add .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Resource'; saveBtn.onclick=saveResource; }
+}
+
+// ── SHOW ARCHIVED toggle ──────────────────────────────────────────
+let showArchived = { project:false, tool:false, inventory:false, resource:false };
+function toggleShowArchived(type) {
+  showArchived[type] = !showArchived[type];
+  rerenderFor(type);
+}
+
+// ════════════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════════════
 function showTab(t) {
@@ -1087,7 +1307,11 @@ function renderPList(type){
   if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
   const BC={Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
   const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
-  cont.innerHTML=filtered.map(p=>{
+  const visibleItems = filtered.filter(p => showArchived.project ? p.archived : !p.archived);
+  const archivedCount = filtered.filter(p=>p.archived).length;
+  cont.innerHTML = (visibleItems.length===0 && !showArchived.project)
+    ? `<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`
+    : visibleItems.map(p=>{
     const thumb=driveThumb(p.driveLink), tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
     const actionBtns=type==='planned'
       ?`<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
@@ -1096,9 +1320,13 @@ function renderPList(type){
       :`<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
     return `<div class="proj-card">
       <div class="proj-card-header"><div>
-        <div class="proj-card-name">${p.name}</div>
+        <div class="proj-card-name">${p.name}${p.archived?` <span class="badge badge-archived">Archived</span>`:''}</div>
         <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div>
-      </div><span class="badge ${BC[p.status]||''}">${p.status}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="badge ${BC[p.status]||''}">${p.status}</span>
+        ${menuBtn(p.id,'project')}
+      </div></div>
       ${p.desc?`<div style="font-size:13px;color:var(--charcoal);margin-top:4px;">${p.desc}</div>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
       ${thumb?`<img src="${thumb}" class="proj-photo" onerror="this.style.display='none'">`:''}
@@ -1108,6 +1336,7 @@ function renderPList(type){
       <div style="font-size:11px;color:var(--muted);margin-top:5px;">${fmtTs(p.ts)}</div>
     </div>`;
   }).join('');
+  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('project')">${showArchived.project?'Hide':'Show'} ${archivedCount} archived project${archivedCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1191,20 +1420,74 @@ function clearProjForm(){
 // ════════════════════════════════════════════════════════════════
 function toggleMaintSec(){ $('t-maint-sec').style.display=$('t-maint-toggle').checked?'block':'none'; }
 
+// Convert any image (including HEIC) to JPEG base64 via canvas
+function imageFileToJpegB64(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Scale down large photos to max 1200px wide to stay within API limits
+      const maxW = 1200;
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
 async function scanToolPhoto(ev){
   const file=ev.target.files[0]; if(!file) return;
-  $('scan-status').innerHTML='<span class="spinner dark"></span> Analyzing tool label...';
+  const stat=$('scan-status');
+  stat.innerHTML='<span class="spinner dark"></span> Converting and analyzing photo...';
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:await f2b64(file)}},{type:"text",text:'Identify this woodworking tool. Return ONLY JSON (no markdown):\n{"name":"","brand":"","model":"","serial":"","category":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other'}]}]})});
-    const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
-    if(p.name)    $('t-name').value    =p.name;
-    if(p.brand)   $('t-brand').value   =p.brand;
-    if(p.model)   $('t-model').value   =p.model;
-    if(p.serial)  $('t-serial').value  =p.serial;
-    if(p.category)$('t-category').value=p.category;
-    $('scan-status').innerHTML='✅ Fields auto-filled — review and complete below.';
-    showStatus('✅ Tool scanned!','ok');
-  } catch(e){ $('scan-status').innerHTML='⚠️ Could not read label. Fill in manually.'; }
+    // Convert to JPEG (fixes HEIC on iPhone)
+    const b64 = await imageFileToJpegB64(file);
+    stat.innerHTML='<span class="spinner dark"></span> Identifying tool...';
+
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+          {type:"text",text:'Identify this woodworking tool or its label sticker. Return ONLY a JSON object (no markdown, no explanation):\n{"name":"","brand":"","model":"","serial":"","category":""}\nCategory must be one of: Power Tools, Hand Tools, Measuring & Layout, Finishing, Clamps & Workholding, Safety, Other\nIf you cannot read a field clearly, leave it as empty string.'}
+        ]}]
+      })
+    });
+
+    const d = await res.json();
+    if(d.error){ stat.innerHTML='⚠️ API error: '+d.error.message; ev.target.value=''; return; }
+
+    const rawText = d.content?.[0]?.text || '{}';
+    let p = {};
+    try { p = JSON.parse(rawText.replace(/```json|```/g,'').trim()); }
+    catch(e){ stat.innerHTML='⚠️ Could not parse response. Try again.'; ev.target.value=''; return; }
+
+    let filled = 0;
+    if(p.name)     { $('t-name').value     = p.name;     filled++; }
+    if(p.brand)    { $('t-brand').value    = p.brand;    filled++; }
+    if(p.model)    { $('t-model').value    = p.model;    filled++; }
+    if(p.serial)   { $('t-serial').value   = p.serial;   filled++; }
+    if(p.category) { $('t-category').value = p.category; filled++; }
+
+    if(filled > 0) {
+      stat.innerHTML=`✅ ${filled} field${filled>1?'s':''} filled — scroll down to review and complete.`;
+      showStatus('✅ Tool scanned!','ok');
+      // Scroll to the tool details form so user can see the filled fields
+      setTimeout(()=>{ const el=$('t-name'); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.borderColor='var(--accent)'; setTimeout(()=>el.style.borderColor='',2500); }}, 300);
+    } else {
+      stat.innerHTML='⚠️ AI could not identify this tool from the photo. Try a closer shot of the label, then fill in manually.';
+    }
+  } catch(e){
+    stat.innerHTML='⚠️ Error: '+e.message+'. Try again or fill in manually.';
+  }
   ev.target.value='';
 }
 
@@ -1245,7 +1528,9 @@ function renderToolList(){
   cntEl.textContent=tools.length+' tools';
   const CB={Excellent:'badge-excellent',Good:'badge-good',Fair:'badge-fair','Needs Service':'badge-service'};
   const CI={'Power Tools':'⚡','Hand Tools':'🔨','Measuring & Layout':'📐',Finishing:'🖌️','Clamps & Workholding':'🗜️',Safety:'🦺',Other:'🔩'};
-  const cats={}; list.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
+  const visibleList = list.filter(t => showArchived.tool ? t.archived : !t.archived);
+  const archivedCount = list.filter(t=>t.archived).length;
+  const cats={}; visibleList.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
   cont.innerHTML=Object.entries(cats).map(([cat,ts])=>`
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
@@ -1254,7 +1539,10 @@ function renderToolList(){
         return `<div class="item-row">
           <div class="item-icon">${CI[t.cat]||'🔧'}</div>
           <div class="item-info">
-            <div class="item-name">${t.name}</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+              <div class="item-name">${t.name}${t.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+              ${menuBtn(t.id,'tool')}
+            </div>
             <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}</div>
             <div style="margin-top:3px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
               <span class="badge ${CB[t.condition]||''}">${t.condition}</span>
@@ -1267,6 +1555,7 @@ function renderToolList(){
         </div>`;
       }).join('')}
     </div>`).join('');
+  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('tool')">${showArchived.tool?'Hide':'Show'} ${archivedCount} archived tool${archivedCount>1?'s':''}</button></div>`;
 }
 function togMaint(id,hdr){ const b=$(id),ch=hdr.querySelector('.chevron'),open=b.style.display!=='none'; b.style.display=open?'none':'block'; ch.classList.toggle('open',!open); }
 function addMaintEntry(toolId){
@@ -1302,18 +1591,24 @@ function renderInvList(){
   if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=inventory.length+' items';
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
-  const cats={}; list.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
+  const visibleList = list.filter(i => showArchived.inventory ? i.archived : !i.archived);
+  const archivedCount = list.filter(i=>i.archived).length;
+  const cats={}; visibleList.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
   cont.innerHTML=Object.entries(cats).map(([cat,items])=>`
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${catIcon[cat]||'📦'} ${cat}</div>
       ${items.map(i=>`<div class="item-row">
         <div class="item-icon">${catIcon[i.category]||'📦'}</div>
         <div class="item-info">
-          <div class="item-name">${i.name}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+            <div class="item-name">${i.name}${i.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+            ${menuBtn(i.id,'inventory')}
+          </div>
           <div class="item-meta">${i.location?'📍 '+i.location:''}${i.notes?'<br>'+i.notes:''}</div>
         </div>
       </div>`).join('')}
     </div>`).join('');
+  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('inventory')">${showArchived.inventory?'Hide':'Show'} ${archivedCount} archived item${archivedCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1326,7 +1621,8 @@ async function bulkScan(ev){
   el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span class="spinner dark"></span> Identifying tool...</div>`;
   $('bulk-results').prepend(el);
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:await f2b64(file)}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
+    const b64 = await imageFileToJpegB64(file);
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
     const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
     el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;">
       <div style="font-weight:600;font-size:14px;margin-bottom:3px;">${p.name||'Unknown Tool'}</div>
@@ -1401,15 +1697,20 @@ function renderResList() {
 
   cont.innerHTML = typeOrder.filter(t=>groups[t]).map(type=>{
     const items=groups[type];
-    return `<div class="res-group-header">${RES_ICONS[type]||'📌'} ${type} <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;">(${items.length})</span></div>
-    ${items.map(r=>{
+    const visibleItems = items.filter(r => showArchived.resource ? r.archived : !r.archived);
+    if(!visibleItems.length) return '';
+    return `<div class="res-group-header">${RES_ICONS[type]||'📌'} ${type} <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;">(${visibleItems.length})</span></div>
+    ${visibleItems.map(r=>{
       const yt=ytThumb(r.url), dt=driveThumb(r.url);
       const linkedProj=r.projectId?projects.find(p=>p.id===r.projectId):null;
       return `<div class="res-card">
         <div class="res-header">
           <div class="res-type-icon">${RES_ICONS[r.type]||'📌'}</div>
           <div class="res-body">
-            <div class="res-title">${r.title}</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+              <div class="res-title">${r.title}${r.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+              ${menuBtn(r.id,'resource')}
+            </div>
             <div class="res-meta">${fmtTs(r.ts)}</div>
             ${r.notes?`<div class="res-notes">${r.notes}</div>`:''}
             ${r.ideaNote?`<div class="res-notes" style="font-style:italic;color:var(--charcoal);">${r.ideaNote}</div>`:''}
@@ -1422,12 +1723,33 @@ function renderResList() {
       </div>`;
     }).join('')}`;
   }).join('');
+  const archivedResCount = list.filter(r=>r.archived).length;
+  if(archivedResCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('resource')">${showArchived.resource?'Hide':'Show'} ${archivedResCount} archived resource${archivedResCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
 // AI ADVISOR
 // ════════════════════════════════════════════════════════════════
-function onChatPhoto(ev){ const f=ev.target.files[0]; if(!f) return; chatMime=f.type||'image/jpeg'; const rd=new FileReader(); rd.onload=e=>{ chatB64=e.target.result.split(',')[1]; $('chat-thumb').src=e.target.result; $('chat-thumb').style.display='inline-block'; $('chat-photo-clear').style.display='inline'; }; rd.readAsDataURL(f); }
+function onChatPhoto(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  chatMime='image/jpeg'; // always send as JPEG
+  // Convert via canvas to handle HEIC on iPhone
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    const maxW=1200, scale=img.width>maxW?maxW/img.width:1;
+    canvas.width=Math.round(img.width*scale); canvas.height=Math.round(img.height*scale);
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    const dataUrl=canvas.toDataURL('image/jpeg',0.85);
+    chatB64=dataUrl.split(',')[1];
+    $('chat-thumb').src=dataUrl; $('chat-thumb').style.display='inline-block';
+    $('chat-photo-clear').style.display='inline';
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); showStatus('⚠️ Could not load photo','err'); };
+  img.src=url;
+}
 function clearChatPhoto(){ chatB64=null; chatMime=null; $('chat-thumb').style.display='none'; $('chat-photo-clear').style.display='none'; $('chat-photo-input').value=''; }
 function chatAppend(role,text,hasPhoto=false){
   const c=$('chat-messages'), d=document.createElement('div'); d.className='chat-msg '+role;
