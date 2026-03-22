@@ -231,6 +231,22 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 /* ARCHIVED BADGE */
 .badge-archived { background:#F0E8FF; color:#6B3FA0; }
 
+/* FAQ */
+.faq-item { border-bottom:1px solid var(--border); padding:2px 0; }
+.faq-item:last-child { border-bottom:none; }
+.faq-q { display:flex; justify-content:space-between; align-items:center; padding:12px 0; cursor:pointer; gap:10px; }
+.faq-q-text { font-weight:600; font-size:14px; color:var(--dark); line-height:1.3; }
+.faq-chevron { font-size:12px; color:var(--muted); transition:transform 0.2s; flex-shrink:0; }
+.faq-chevron.open { transform:rotate(180deg); }
+.faq-a { font-size:13px; color:var(--charcoal); line-height:1.7; padding:0 0 14px; display:none; }
+.faq-a.open { display:block; }
+.faq-a ul { margin:6px 0 6px 16px; }
+.faq-a li { margin-bottom:4px; }
+.faq-a strong { color:var(--dark); }
+.faq-a .faq-tip { background:var(--warm); border-left:3px solid var(--accent); border-radius:0 6px 6px 0; padding:8px 12px; margin-top:8px; font-size:12px; }
+.faq-section-head { font-family:'Playfair Display',serif; font-size:15px; color:var(--dark); margin:18px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }
+.faq-section-head:first-child { margin-top:0; }
+
 /* MISC */
 .spinner { display:inline-block; width:15px; height:15px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; }
 .spinner.dark { border-color:rgba(61,43,31,0.2); border-top-color:var(--accent); }
@@ -256,7 +272,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     </div>
     <div class="header-text">
       <h1>EG Custom Woodworking</h1>
-      <div class="sub">Workshop Assistant</div>
+      <div class="sub">Workshop Assistant · Built: March 22, 2026 7:30 PM</div>
     </div>
   </div>
 </div>
@@ -265,6 +281,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   <button class="tab-btn"        onclick="showTab('shop')"      id="tab-shop"><span class="icon">🔧</span>Shop</button>
   <button class="tab-btn"        onclick="showTab('resources')" id="tab-resources"><span class="icon">📚</span>Resources</button>
   <button class="tab-btn"        onclick="showTab('advisor')"   id="tab-advisor"><span class="icon">🤖</span>Advisor</button>
+  <button class="tab-btn"        onclick="showTab('faq')"       id="tab-faq"><span class="icon">❓</span>Help</button>
 </div>
 
 <!-- ═══════════════════════ PROJECTS ═══════════════════════ -->
@@ -713,6 +730,16 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 </div>
 
+<!-- ═══════════════════════ FAQ / HELP ═══════════════════════ -->
+<div class="section" id="section-faq">
+  <div class="card" style="padding:16px 18px;">
+    <div class="card-title">❓ Help & FAQ</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Everything you need to know about using EG Custom Woodworking.</p>
+
+    <div id="faq-list"></div>
+  </div>
+</div>
+
 <!-- LESSONS MODAL -->
 <div class="modal-overlay" id="lessons-modal" style="display:none;">
   <div class="modal-box">
@@ -734,7 +761,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 // ════════════════════════════════════════════════════════════════
 const SCRIPT_URL    = "https://script.google.com/macros/s/AKfycby83e0AXHphq8hPTB2rOWVGedpBq9zrNi083BvmdmXqRZzll7ccS1HenCy9JZ-D_guN/exec";
 const ANTHROPIC_KEY = "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";
-const STORAGE_KEY   = 'egcw_v4'; // bump this version to force fresh sync
+const STORAGE_KEY   = 'egcw_v5'; // bumped to clear duplicate data from previous builds
 
 // ════════════════════════════════════════════════════════════════
 // STATE
@@ -810,13 +837,20 @@ async function syncFromSheet() {
     const [pData, tData, iData, rData] = results;
 
     if (pData?.rows?.length) {
-      projects = pData.rows.map(r => {
-        // Normalize status — old builds saved "Complete" not "Completed"
+      // Build a map of existing local projects to preserve any local-only data
+      const localProjMap = {};
+      projects.forEach(p => { localProjMap[p.id] = p; });
+
+      const sheetIds = new Set();
+      const sheetProjects = pData.rows.map(r => {
         let status = r[6]||'Planned';
         if (status === 'Complete') status = 'Completed';
         if (status === 'In-Progress' || status === 'In progress') status = 'In Progress';
+        const id = r[0]||genId();
+        sheetIds.add(id);
         return {
-          id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
+          ...(localProjMap[id]||{}),
+          id, ts:r[1]?new Date(r[1]).getTime():Date.now(),
           name:r[2]||'', desc:r[3]||'', wood:r[4]||'', dims:r[5]||'',
           status, lessons:r[7]||'', madeFor:r[8]||'Self',
           recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
@@ -824,31 +858,44 @@ async function syncFromSheet() {
           notes:r[14]||''
         };
       });
+      // Deduplicate by ID — keep only one entry per ID
+      const seen = new Set();
+      projects = sheetProjects.filter(p => { if(seen.has(p.id)) return false; seen.add(p.id); return true; });
     }
 
     if (tData?.rows?.length) {
-      tools = tData.rows.map(r => ({
-        id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
-        cat:r[2]||'Other', name:r[3]||'', brand:r[4]||'', model:r[5]||'',
-        serial:r[6]||'', date:r[7]||'', price:r[8]||'', location:r[9]||'',
-        manual:r[10]||'', condition:r[11]||'Good', notes:r[12]||'',
-        driveLink:r[13]||'', hasMaint:r[14]==='Yes', maintLog:[]
-      }));
+      const localToolMap = {};
+      tools.forEach(t => { localToolMap[t.id] = t; });
+      const seen = new Set();
+      tools = tData.rows.map(r => {
+        const id = r[0]||genId();
+        return {
+          ...(localToolMap[id]||{}),
+          id, ts:r[1]?new Date(r[1]).getTime():Date.now(),
+          cat:r[2]||'Other', name:r[3]||'', brand:r[4]||'', model:r[5]||'',
+          serial:r[6]||'', date:r[7]||'', price:r[8]||'', location:r[9]||'',
+          manual:r[10]||'', condition:r[11]||'Good', notes:r[12]||'',
+          driveLink:r[13]||'', hasMaint:r[14]==='Yes',
+          maintLog: localToolMap[id]?.maintLog || []
+        };
+      }).filter(t => { if(seen.has(t.id)) return false; seen.add(t.id); return true; });
     }
 
     if (iData?.rows?.length) {
+      const seen = new Set();
       inventory = iData.rows.map(r => ({
         id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
         name:r[2]||'', category:r[3]||'Miscellaneous', location:r[4]||'', notes:r[5]||''
-      }));
+      })).filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; });
     }
 
     if (rData?.rows?.length) {
+      const seen = new Set();
       resources = rData.rows.map(r => ({
         id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
         title:r[2]||'', type:r[3]||'Articles', url:r[4]||'',
         notes:r[5]||'', ideaNote:r[6]||'', projectId:r[7]||''
-      }));
+      })).filter(r => { if(seen.has(r.id)) return false; seen.add(r.id); return true; });
     }
 
     saveLocal();
@@ -935,13 +982,10 @@ function cardMenuById(id, type, btnEl) {
 }
 
 function menuItemsFor(id, type) {
-  const isArchived = isItemArchived(id, type);
   const items = [
-    { icon:'✏️', label:'Edit',    action:`editItem('${id}','${type}')` },
+    { icon:'✏️', label:'Edit',   action:`editItem('${id}','${type}')` },
     '---',
-    isArchived
-      ? { icon:'📤', label:'Unarchive', action:`archiveItem('${id}','${type}',false)` }
-      : { icon:'📦', label:'Archive',   action:`archiveItem('${id}','${type}',true)`, danger:false }
+    { icon:'🗑️', label:'Delete', action:`deleteItem('${id}','${type}')`, danger:true }
   ];
   return items;
 }
@@ -959,14 +1003,21 @@ function findItem(id, type) {
   return null;
 }
 
-// ── ARCHIVE / UNARCHIVE ───────────────────────────────────────────
-function archiveItem(id, type, archive) {
+// ── DELETE ────────────────────────────────────────────────────────
+function deleteItem(id, type) {
   const item = findItem(id, type);
   if (!item) return;
-  item.archived = archive;
+  const name = item.name || item.title || 'this item';
+  if (!confirm(`Delete "${name}"?\n\nThis removes it from the app. Your Google Sheet row will remain as a record.`)) return;
+
+  if (type==='project')   projects  = projects.filter(x=>x.id!==id);
+  if (type==='tool')      tools     = tools.filter(x=>x.id!==id);
+  if (type==='inventory') inventory = inventory.filter(x=>x.id!==id);
+  if (type==='resource')  resources = resources.filter(x=>x.id!==id);
+
   saveLocal();
-  toSheet({action:'save', sheet:sheetForType(type), id, archived:archive?'Yes':'No', name:item.name||item.title||''});
-  showStatus(archive ? '📦 Archived' : '📤 Unarchived', 'ok');
+  toSheet({action:'delete', sheet:sheetForType(type), id});
+  showStatus('🗑️ Deleted', 'ok');
   rerenderFor(type);
 }
 
@@ -1114,6 +1165,7 @@ function showTab(t) {
   if(t==='projects')  { renderToolChips(); renderAllPLists(); }
   if(t==='shop')      { renderToolList(); renderInvList(); }
   if(t==='resources') { populateProjectDropdown(); renderResList(); }
+  if(t==='faq')       { renderFAQ(); }
 }
 
 function showPTab(s) {
@@ -1327,11 +1379,7 @@ function renderPList(type){
   if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
   const BC={Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
   const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
-  const visibleItems = filtered.filter(p => showArchived.project ? p.archived : !p.archived);
-  const archivedCount = filtered.filter(p=>p.archived).length;
-  cont.innerHTML = (visibleItems.length===0 && !showArchived.project)
-    ? `<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`
-    : visibleItems.map(p=>{
+  cont.innerHTML = filtered.map(p=>{
     const thumb=driveThumb(p.driveLink), tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
     const actionBtns=type==='planned'
       ?`<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
@@ -1340,7 +1388,7 @@ function renderPList(type){
       :`<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
     return `<div class="proj-card">
       <div class="proj-card-header"><div>
-        <div class="proj-card-name">${p.name}${p.archived?` <span class="badge badge-archived">Archived</span>`:''}</div>
+        <div class="proj-card-name">${p.name}</div>
         <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -1356,7 +1404,6 @@ function renderPList(type){
       <div style="font-size:11px;color:var(--muted);margin-top:5px;">${fmtTs(p.ts)}</div>
     </div>`;
   }).join('');
-  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('project')">${showArchived.project?'Hide':'Show'} ${archivedCount} archived project${archivedCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1559,9 +1606,7 @@ function renderToolList(){
   cntEl.textContent=tools.length+' tools';
   const CB={Excellent:'badge-excellent',Good:'badge-good',Fair:'badge-fair','Needs Service':'badge-service'};
   const CI={'Power Tools':'⚡','Hand Tools':'🔨','Measuring & Layout':'📐',Finishing:'🖌️','Clamps & Workholding':'🗜️',Safety:'🦺',Other:'🔩'};
-  const visibleList = list.filter(t => showArchived.tool ? t.archived : !t.archived);
-  const archivedCount = list.filter(t=>t.archived).length;
-  const cats={}; visibleList.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
+  const cats={}; list.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
   cont.innerHTML=Object.entries(cats).map(([cat,ts])=>`
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
@@ -1571,7 +1616,7 @@ function renderToolList(){
           <div class="item-icon">${CI[t.cat]||'🔧'}</div>
           <div class="item-info">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-              <div class="item-name">${t.name}${t.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+              <div class="item-name">${t.name}</div>
               ${menuBtn(t.id,'tool')}
             </div>
             <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}</div>
@@ -1586,7 +1631,6 @@ function renderToolList(){
         </div>`;
       }).join('')}
     </div>`).join('');
-  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('tool')">${showArchived.tool?'Hide':'Show'} ${archivedCount} archived tool${archivedCount>1?'s':''}</button></div>`;
 }
 function togMaint(id,hdr){ const b=$(id),ch=hdr.querySelector('.chevron'),open=b.style.display!=='none'; b.style.display=open?'none':'block'; ch.classList.toggle('open',!open); }
 function addMaintEntry(toolId){
@@ -1622,9 +1666,7 @@ function renderInvList(){
   if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=inventory.length+' items';
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
-  const visibleList = list.filter(i => showArchived.inventory ? i.archived : !i.archived);
-  const archivedCount = list.filter(i=>i.archived).length;
-  const cats={}; visibleList.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
+  const cats={}; list.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
   cont.innerHTML=Object.entries(cats).map(([cat,items])=>`
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${catIcon[cat]||'📦'} ${cat}</div>
@@ -1632,14 +1674,13 @@ function renderInvList(){
         <div class="item-icon">${catIcon[i.category]||'📦'}</div>
         <div class="item-info">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-            <div class="item-name">${i.name}${i.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+            <div class="item-name">${i.name}</div>
             ${menuBtn(i.id,'inventory')}
           </div>
           <div class="item-meta">${i.location?'📍 '+i.location:''}${i.notes?'<br>'+i.notes:''}</div>
         </div>
       </div>`).join('')}
     </div>`).join('');
-  if(archivedCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('inventory')">${showArchived.inventory?'Hide':'Show'} ${archivedCount} archived item${archivedCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1728,10 +1769,8 @@ function renderResList() {
 
   cont.innerHTML = typeOrder.filter(t=>groups[t]).map(type=>{
     const items=groups[type];
-    const visibleItems = items.filter(r => showArchived.resource ? r.archived : !r.archived);
-    if(!visibleItems.length) return '';
-    return `<div class="res-group-header">${RES_ICONS[type]||'📌'} ${type} <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;">(${visibleItems.length})</span></div>
-    ${visibleItems.map(r=>{
+    return `<div class="res-group-header">${RES_ICONS[type]||'📌'} ${type} <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;">(${items.length})</span></div>
+    ${items.map(r=>{
       const yt=ytThumb(r.url), dt=driveThumb(r.url);
       const linkedProj=r.projectId?projects.find(p=>p.id===r.projectId):null;
       return `<div class="res-card">
@@ -1739,7 +1778,7 @@ function renderResList() {
           <div class="res-type-icon">${RES_ICONS[r.type]||'📌'}</div>
           <div class="res-body">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-              <div class="res-title">${r.title}${r.archived?' <span class="badge badge-archived" style="font-size:10px;">Archived</span>':''}</div>
+              <div class="res-title">${r.title}</div>
               ${menuBtn(r.id,'resource')}
             </div>
             <div class="res-meta">${fmtTs(r.ts)}</div>
@@ -1754,8 +1793,6 @@ function renderResList() {
       </div>`;
     }).join('')}`;
   }).join('');
-  const archivedResCount = list.filter(r=>r.archived).length;
-  if(archivedResCount>0) cont.innerHTML += `<div style="text-align:center;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="toggleShowArchived('resource')">${showArchived.resource?'Hide':'Show'} ${archivedResCount} archived resource${archivedResCount>1?'s':''}</button></div>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1820,8 +1857,166 @@ Be practical, specific, concise. Use bullet points for steps.`;
 }
 
 // ════════════════════════════════════════════════════════════════
-// STARTUP
+// FAQ
 // ════════════════════════════════════════════════════════════════
+const FAQ_DATA = [
+  { section: '🪵 Projects' },
+  {
+    q: 'How do I add a new project?',
+    a: `Tap the <strong>Projects</strong> tab → <strong>➕ Add</strong> sub-tab. Fill in the project name (required) and any other details. Set the status to <strong>Planned</strong>, <strong>In Progress</strong>, or <strong>Completed</strong>. Tap <strong>💾 Save Project</strong>.<br><br>The project will automatically appear in the correct tab (Planned, In Progress, or Completed) after saving.`
+  },
+  {
+    q: 'How do I add a past project I already completed?',
+    a: `Same as adding a new project — tap <strong>➕ Add</strong> and set the status to <strong>Completed</strong>. Fill in as much or as little as you remember. These projects help the AI Advisor understand your skills and history.`
+  },
+  {
+    q: 'How do I move a project from Planned to In Progress?',
+    a: `Go to the <strong>📋 Planned</strong> tab and find your project. Tap the <strong>▶ Start Project</strong> button on its card. It will immediately move to the In Progress tab.`
+  },
+  {
+    q: 'How do I mark a project as complete?',
+    a: `Go to the <strong>⚡ In Progress</strong> tab and tap <strong>✅ Mark Complete</strong> on the project card. You'll get a prompt to add Lessons Learned before it saves — you can skip this if you want, but it helps the AI Advisor learn from your experience.`
+  },
+  {
+    q: 'How do I edit a project?',
+    a: `Tap the <strong>⋯ button</strong> in the top right corner of any project card and select <strong>✏️ Edit</strong>. The Add form will open pre-filled with all the project's current details. Make your changes and tap <strong>💾 Update Project</strong>.`
+  },
+  {
+    q: 'How do I archive a project?',
+    a: `Tap the <strong>⋯ button</strong> on any project card and select <strong>📦 Archive</strong>. The project disappears from the list but stays in your Google Sheet. A <em>Show archived</em> button appears at the bottom of the list so you can always get it back.<br><br>
+    <div class="faq-tip">💡 Archive is not a permanent delete — your data is always safe in the Sheet.</div>`
+  },
+  {
+    q: 'How do technique tags (Lathe, Epoxy, Laser) work?',
+    a: `When adding or editing a project, tap the technique chips to tag which methods were used. These tags let you filter your project lists — for example, tap <strong>🪵 Lathe</strong> in the filter bar to see only lathe projects.<br><br>To add a custom tag, tap <strong>+ Add Tag</strong> and type your own. Custom tags are saved and available on future projects.`
+  },
+
+  { section: '🔧 Shop — Tools' },
+  {
+    q: 'How do I add a tool to my inventory?',
+    a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → make sure <strong>🔧 Add Tool</strong> is selected at the top.<br><br>You have two ways to fill in the details:<ul><li><strong>Scan a label:</strong> Tap the scan area and take a photo of the tool or its label sticker. AI will auto-fill Brand, Model, and other fields.</li><li><strong>Manual entry:</strong> Fill in the fields yourself.</li></ul>Tap <strong>💾 Save Tool</strong> when done.`
+  },
+  {
+    q: 'The tool scan filled in the fields but showed an API error — what happened?',
+    a: `This means your Anthropic API key is either missing or invalid in the HTML file. The scan actually worked (fields were filled) but the connection to the AI was rejected.<br><br>To fix: open <strong>woodworking-app.html</strong> in Notepad, press <strong>Ctrl+H</strong>, find <code>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</code> and replace it with your actual key from the Notepad file on your desktop. Save and re-upload to GitHub.`
+  },
+  {
+    q: 'How does the Bulk Scan feature work?',
+    a: `Bulk Scan lets you photograph your entire shop one tool at a time by location.<ul><li>Go to <strong>Shop</strong> → <strong>📍 Bulk Scan</strong></li><li>Select the location you're scanning (e.g. Tool Wall, Craftsman Bench Drawer 2)</li><li>Tap <strong>📷 Take Photo</strong> for each tool</li><li>AI identifies the tool and shows you a preview</li><li>Tap <strong>✅ Add to Inventory</strong> to confirm, or <strong>✕ Skip</strong> to discard</li></ul>
+    <div class="faq-tip">💡 Get close to each tool for best results — one tool per photo.</div>`
+  },
+  {
+    q: 'How do I add a maintenance log to a tool?',
+    a: `When adding a tool, check the box <strong>📋 Include Maintenance Log</strong>. You can add an initial note and tap <strong>🤖 Get AI Maintenance Schedule</strong> to get a recommended service schedule for that specific tool.<br><br>Once the tool is saved, tap its <strong>Maintenance Log</strong> row on the tool card to expand the log, then tap <strong>+ Add Entry</strong> to log future service.`
+  },
+  {
+    q: 'How do I edit or archive a tool?',
+    a: `Tap the <strong>⋯ button</strong> on any tool card in the inventory. Select <strong>✏️ Edit</strong> to update details, or <strong>📦 Archive</strong> to hide it from view while keeping it in your Sheet.`
+  },
+
+  { section: '📦 Shop — Inventory' },
+  {
+    q: 'What is the Inventory section for?',
+    a: `Inventory is for consumable supplies and small items that aren't tools — things like picture hangers, brad nails, sandpaper grits, finishing supplies, or wood stock. Each item just needs a name, category, location, and optional notes.`
+  },
+  {
+    q: 'How do I add an inventory item?',
+    a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → tap <strong>📦 Add Inventory</strong> at the top to switch to the inventory form. Fill in the name, category, location, and any notes. Tap <strong>💾 Save Item</strong>.`
+  },
+
+  { section: '📸 Photos & Google Drive' },
+  {
+    q: 'How do I add a photo to a project or tool?',
+    a: `<strong>Step 1:</strong> Take or select the photo inside the app using the 📷 area.<br><strong>Step 2:</strong> Tap <strong>💾 Save Photos to Drive</strong> — this opens your iPhone Share Sheet so you can save to Google Drive.<br><strong>Step 3:</strong> Open the Google Drive app, find the photo in your <em>Grasse Workshop → Projects</em> (or Tools) folder, tap the three dots, and tap <strong>Share → Copy Link</strong>.<br><strong>Step 4:</strong> Paste the link into the <em>Google Drive link</em> field in the app.<br><br>
+    <div class="faq-tip">💡 Make sure your Grasse Workshop folder in Drive is set to "Anyone with the link can view" so photos display as previews in the app.</div>`
+  },
+  {
+    q: 'Why isn\'t my photo showing as a preview in the app?',
+    a: `Two common causes:<ul><li>The Google Drive folder isn't set to "Anyone with the link can view" — open Drive, right-click the Grasse Workshop folder → Share → change Restricted to Anyone with the link → Viewer.</li><li>The link was copied before the photo finished uploading — wait a moment and copy the link again.</li></ul>`
+  },
+
+  { section: '📚 Resources' },
+  {
+    q: 'How do I save a YouTube video?',
+    a: `Tap <strong>Resources</strong> → <strong>➕ Add</strong>. Enter a title, set Type to <strong>🎥 Videos & YouTube</strong>, and paste the YouTube URL. A thumbnail preview will appear automatically. Add notes if you want, then tap <strong>💾 Save Resource</strong>.`
+  },
+  {
+    q: 'How do I link a resource to a project?',
+    a: `When adding or editing a resource, there's an optional <strong>Link to Project</strong> dropdown at the bottom of the form. Select any of your existing projects. The resource card will then show which project it's linked to.`
+  },
+  {
+    q: 'How do I save plans or documents?',
+    a: `Upload your PDF or document to your <em>Grasse Workshop → Projects</em> folder in Google Drive. Then add a Resource, set Type to <strong>📄 Plans & Documents</strong>, and paste the Google Drive share link. The document will be accessible with a single tap from the resource card.`
+  },
+
+  { section: '🤖 AI Advisor' },
+  {
+    q: 'What does the AI Advisor know about me?',
+    a: `Every time you open a chat in the Advisor, it automatically receives:<ul><li>Your complete tool inventory (brand, model, location)</li><li>Your project history (status, wood species, techniques, lessons learned)</li><li>Your saved resources</li></ul>This means it will only recommend tools you actually own and can give advice based on your specific experience and past builds.`
+  },
+  {
+    q: 'How do I send a photo to the Advisor?',
+    a: `Tap the <strong>📷 Attach Photo</strong> button in the Advisor chat. Take a photo or choose one from your library. Type your question in the text box (or leave it blank for a general analysis), then tap Send.<br><br>The Advisor can identify wood species, spot defects, analyze grain patterns, or help troubleshoot a problem from a photo.`
+  },
+  {
+    q: 'The Advisor isn\'t responding — what\'s wrong?',
+    a: `Most likely causes:<ul><li><strong>Invalid API key</strong> — check that your Anthropic API key is correctly set in the HTML file (see the tool scan FAQ above)</li><li><strong>Spending limit reached</strong> — check your usage at console.anthropic.com → Billing</li><li><strong>No internet</strong> — the Advisor requires an active connection</li></ul>`
+  },
+
+  { section: '⚙️ App Settings & Updates' },
+  {
+    q: 'How do I know I\'m looking at the latest version of the app?',
+    a: `Check the <strong>build date and time</strong> shown in the header under "EG Custom Woodworking". After uploading a new HTML file to GitHub, wait 60–90 seconds and hard refresh the page. If the build time matches the latest version, you're current.`
+  },
+  {
+    q: 'How do I update the app with a new version?',
+    a: `<ul><li>Download the new <strong>woodworking-app.html</strong> file</li><li>Open it in <strong>Notepad</strong> → press <strong>Ctrl+H</strong></li><li>Find: <code>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</code> → Replace with your actual API key (saved in Notepad on your desktop)</li><li>Save the file</li><li>Go to your GitHub repo → click <strong>woodworking-app.html</strong> → click the pencil ✏️ icon → or drag and drop the new file to upload</li><li>Wait 60–90 seconds → refresh the app</li></ul>
+    <div class="faq-tip">💡 Your data is stored in localStorage on your device AND in Google Sheets, so it's never lost when you update the app.</div>`
+  },
+  {
+    q: 'Where is my Anthropic API key saved?',
+    a: `Your API key is saved in a <strong>Notepad file on your desktop</strong>. Open that file, copy the key, and use it when doing the Ctrl+H swap in the HTML file.`
+  },
+  {
+    q: 'How does the Google Sheet fit in?',
+    a: `The Google Sheet at <em>Grasse Woodshop</em> is your permanent backup. Every time you save a project, tool, inventory item, or resource in the app, it automatically writes a row to the Sheet.<br><br>When you open the app, it syncs everything back from the Sheet so you never lose data even if you clear your browser or switch devices. You can also view and search all your data directly in the Sheet.`
+  },
+  {
+    q: 'How do I add my company logo to the app?',
+    a: `<ul><li>Upload your logo image (PNG works best, ideally square or circular) to your GitHub repo</li><li>Open <strong>woodworking-app.html</strong> in Notepad</li><li>Find the comment that says <code>&lt;!-- To add your logo...</code></li><li>Replace the 🪵 emoji with: <code>&lt;img src="your-logo-filename.png" alt="EG Logo"&gt;</code></li><li>Save and upload to GitHub</li></ul>
+    <div class="faq-tip">💡 The logo displays in a 40×40px circle in the header. A square PNG with a transparent or dark background looks best.</div>`
+  },
+  {
+    q: 'How do I add the app to my iPhone home screen?',
+    a: `<ul><li>Open the app URL in <strong>Safari</strong> (not Chrome)</li><li>Tap the <strong>Share button</strong> (box with arrow pointing up)</li><li>Scroll down and tap <strong>Add to Home Screen</strong></li><li>Name it <em>EG Woodworking</em> and tap <strong>Add</strong></li></ul>The app will open full-screen like a native app. Always use this home screen shortcut — it keeps a consistent browser session so your local data stays in sync.`
+  },
+];
+
+function renderFAQ() {
+  const container = $('faq-list');
+  if (!container) return;
+  container.innerHTML = FAQ_DATA.map((item, idx) => {
+    if (item.section) {
+      return `<div class="faq-section-head">${item.section}</div>`;
+    }
+    return `<div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(${idx})">
+        <span class="faq-q-text">${item.q}</span>
+        <span class="faq-chevron" id="faq-chev-${idx}">▼</span>
+      </div>
+      <div class="faq-a" id="faq-a-${idx}">${item.a}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFAQ(idx) {
+  const answer  = $('faq-a-'+idx);
+  const chevron = $('faq-chev-'+idx);
+  if (!answer) return;
+  const isOpen = answer.classList.contains('open');
+  answer.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
 loadLocal();
 migrateOldData();
 setAddType('tool');
@@ -1831,6 +2026,7 @@ renderAllPLists();
 renderToolList();
 renderInvList();
 renderResList();
+renderFAQ();
 // Auto-sync from Sheet on startup
 syncFromSheet();
 </script>
