@@ -797,14 +797,20 @@ async function syncFromSheet() {
     const [pData, tData, iData, rData] = results;
 
     if (pData?.rows?.length) {
-      projects = pData.rows.map(r => ({
-        id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
-        name:r[2]||'', desc:r[3]||'', wood:r[4]||'', dims:r[5]||'',
-        status:r[6]||'Planned', lessons:r[7]||'', madeFor:r[8]||'Self',
-        recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
-        toolNotes:r[12]||'', tags:r[13]?r[13].split(',').map(t=>t.trim()).filter(Boolean):[],
-        notes:r[14]||''
-      }));
+      projects = pData.rows.map(r => {
+        // Normalize status — old builds saved "Complete" not "Completed"
+        let status = r[6]||'Planned';
+        if (status === 'Complete') status = 'Completed';
+        if (status === 'In-Progress' || status === 'In progress') status = 'In Progress';
+        return {
+          id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
+          name:r[2]||'', desc:r[3]||'', wood:r[4]||'', dims:r[5]||'',
+          status, lessons:r[7]||'', madeFor:r[8]||'Self',
+          recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
+          toolNotes:r[12]||'', tags:r[13]?r[13].split(',').map(t=>t.trim()).filter(Boolean):[],
+          notes:r[14]||''
+        };
+      });
     }
 
     if (tData?.rows?.length) {
