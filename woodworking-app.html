@@ -229,6 +229,11 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .card-menu-dropdown button.danger { color:var(--red); }
 .card-menu-dropdown .menu-divider { height:1px; background:var(--border); margin:2px 0; }
 
+.badge-idea { background:#FFF3CD; color:#856404; }
+.badge-priority-high   { background:#FFE0E0; color:#A84040; }
+.badge-priority-medium { background:#FFF3CD; color:#856404; }
+.badge-priority-low    { background:#E0F0E0; color:#3A6B2A; }
+
 /* ARCHIVED BADGE */
 .badge-archived { background:#F0E8FF; color:#6B3FA0; }
 
@@ -297,6 +302,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   <div id="sync-banner-projects"></div>
   <div class="sub-tabs">
     <button class="sub-tab active" onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
+    <button class="sub-tab"        onclick="showPTab('ideas')"     id="ptab-ideas">💡 Ideas</button>
     <button class="sub-tab"        onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
     <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Completed</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
@@ -310,6 +316,16 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <span class="filter-chip" data-f="Laser Etching" data-list="planned" onclick="toggleFilter(this)">⚡ Laser</span>
     </div>
     <div id="plist-planned"></div>
+  </div>
+
+  <div id="psub-ideas" style="display:none;">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-ideas" placeholder="Search ideas..." oninput="renderPList('ideas')"></div>
+    <div class="filter-chips">
+      <span class="filter-chip" data-f="Lathe"         data-list="ideas" onclick="toggleFilter(this)">🪵 Lathe</span>
+      <span class="filter-chip" data-f="Epoxy"         data-list="ideas" onclick="toggleFilter(this)">🔵 Epoxy</span>
+      <span class="filter-chip" data-f="Laser Etching" data-list="ideas" onclick="toggleFilter(this)">⚡ Laser</span>
+    </div>
+    <div id="plist-ideas"></div>
   </div>
 
   <div id="psub-progress" style="display:none;">
@@ -342,11 +358,22 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <div class="form-row"><label>Dimensions</label><input type="text" id="p-dims" placeholder='e.g. 48" × 24" × 18"'></div>
       <div class="form-row"><label>Status</label>
         <select id="p-status" onchange="onStatusChg()">
+          <option value="Idea">💡 Idea</option>
           <option value="Planned">Planned</option>
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
         </select>
       </div>
+      <div class="form-row" id="p-priority-row">
+        <label>Priority</label>
+        <select id="p-priority">
+          <option value="">— No priority —</option>
+          <option value="High">🔴 High</option>
+          <option value="Medium">🟡 Medium</option>
+          <option value="Low">🟢 Low</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Source URL</label><input type="url" id="p-source-url" placeholder="https:// where you saw this idea..."></div>
       <div class="form-row" id="p-lessons-row" style="display:none;"><label>Lessons Learned</label><textarea id="p-lessons" placeholder="What worked? What would you do differently?"></textarea></div>
       <div class="form-row"><label>Made For</label>
         <select id="p-for" onchange="onForChg()">
@@ -900,7 +927,7 @@ async function syncFromSheet() {
           status, lessons:r[7]||'', madeFor:r[8]||'Self',
           recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
           toolNotes:r[12]||'', tags:r[13]?r[13].split(',').map(t=>t.trim()).filter(Boolean):[],
-          notes:r[14]||''
+          notes:r[14]||'', priority:r[15]||'', sourceUrl:r[16]||''
         };
       });
       // Deduplicate by ID — keep only one entry per ID
@@ -1224,19 +1251,19 @@ function showTab(t) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   $('section-'+t).classList.add('active');
   $('tab-'+t).classList.add('active');
-  if(t==='projects')  { renderToolChips(); renderAllPLists(); }
+  if(t==='projects')  { renderToolChips(); renderAllPLists(); showPTab('planned'); }
   if(t==='shop')      { renderToolList(); renderInvList(); }
   if(t==='resources') { populateProjectDropdown(); renderResList(); }
   if(t==='faq')       { renderFAQ(); }
 }
 
 function showPTab(s) {
-  ['planned','progress','completed','add'].forEach(x=>{
+  ['ideas','planned','progress','completed','add'].forEach(x=>{
     $('psub-'+x).style.display = x===s?'block':'none';
     $('ptab-'+x).classList.toggle('active', x===s);
   });
   if(s==='add') {
-    // Only reset if NOT coming from an editProject call (edit sets p-edit-id before calling showPTab)
+    // Only reset if NOT coming from an editProject call
     setTimeout(()=>{
       if(!gv('p-edit-id')) {
         selToolIds = [];
@@ -1428,40 +1455,55 @@ function toggleResFilter(el){
 // ════════════════════════════════════════════════════════════════
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
-function renderAllPLists(){ ['planned','progress','completed'].forEach(renderPList); }
+function renderAllPLists(){ ['ideas','planned','progress','completed'].forEach(renderPList); }
+
+const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2, '': 3 };
+const PRIORITY_BADGE = { High: '🔴 High', Medium: '🟡 Medium', Low: '🟢 Low' };
 
 function renderPList(type){
   const cfg={
-    planned:   {filter:p=>p.status==='Planned',    srch:'srch-planned',   cont:'plist-planned',   icon:'📋',msg:'No planned projects yet.<br>Tap ➕ Add to plan one!'},
-    progress:  {filter:p=>p.status==='In Progress',srch:'srch-progress',  cont:'plist-progress',  icon:'⚡',msg:'No projects in progress.<br>Start one from Planned, or tap ➕ Add.'},
-    completed: {filter:p=>p.status==='Completed',  srch:'srch-completed', cont:'plist-completed', icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'}
+    ideas:     {filter:p=>p.status==='Idea',         srch:'srch-ideas',     cont:'plist-ideas',     icon:'💡',msg:'No ideas yet.<br>Tap ➕ Add and set status to 💡 Idea!'},
+    planned:   {filter:p=>p.status==='Planned',       srch:'srch-planned',   cont:'plist-planned',   icon:'📋',msg:'No planned projects yet.<br>Tap ➕ Add to plan one!'},
+    progress:  {filter:p=>p.status==='In Progress',   srch:'srch-progress',  cont:'plist-progress',  icon:'⚡',msg:'No projects in progress.<br>Start one from Planned, or tap ➕ Add.'},
+    completed: {filter:p=>p.status==='Completed',     srch:'srch-completed', cont:'plist-completed', icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'}
   }[type]; if(!cfg) return;
-  const filtered=filterList(projects.filter(cfg.filter), cfg.srch, type);
+  let filtered = filterList(projects.filter(cfg.filter), cfg.srch, type);
+  // Sort planned by priority
+  if(type==='planned') {
+    filtered = filtered.slice().sort((a,b)=>(PRIORITY_ORDER[a.priority||'']||3)-(PRIORITY_ORDER[b.priority||'']||3));
+  }
   const cont=$(cfg.cont);
   if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
-  const BC={Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
+  const BC={Idea:'badge-idea',Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
   const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
   cont.innerHTML = filtered.map(p=>{
     const allLinks = p.driveLinks||[p.driveLink].filter(Boolean);
     const thumbs = allLinks.map(l=>driveThumb(l)).filter(Boolean);
     const tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
-    const actionBtns=type==='planned'
-      ?`<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
-      :type==='progress'
-      ?`<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
-      :`<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
+    const priorityBadge = p.priority && PRIORITY_BADGE[p.priority]
+      ? `<span class="badge badge-priority-${p.priority.toLowerCase()}" style="font-size:10px;">${PRIORITY_BADGE[p.priority]}</span>` : '';
+    const actionBtns = type==='ideas'
+      ? `<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Planned')">📋 Promote to Planned</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      : type==='planned'
+      ? `<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      : type==='progress'
+      ? `<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      : `<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
     return `<div class="proj-card">
       <div class="proj-card-header"><div>
         <div class="proj-card-name">${p.name}</div>
         <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        ${priorityBadge}
         <span class="badge ${BC[p.status]||''}">${p.status}</span>
         ${menuBtn(p.id,'project')}
       </div></div>
       ${p.desc?`<div style="font-size:13px;color:var(--charcoal);margin-top:4px;">${p.desc}</div>`:''}
+      ${p.sourceUrl?`<a href="${p.sourceUrl}" target="_blank" style="font-size:12px;color:var(--accent);display:inline-block;margin-top:4px;">🔗 Source ↗</a>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
-      ${thumbs.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${thumbs.map(t=>`<img src="${t}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`).join('')}</div>`:''}      ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
+      ${thumbs.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${thumbs.map(t=>`<img src="${t}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`).join('')}</div>`:''}
+      ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
       ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:5px;">${p.notes}</div>`:''}
       ${(()=>{ const linked=resources.filter(r=>r.projectId===p.id); return linked.length?`<div style="margin-top:8px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#F0E8FF;color:#6B3FA0;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}
       <div class="proj-actions">${actionBtns}</div>
@@ -1484,7 +1526,8 @@ function applyMove(id,status,lessons){
   saveLocal();
   toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,status:p.status,lessons:p.lessons||''});
   showStatus(`✅ Moved to ${status}`,'ok'); renderAllPLists();
-  setTimeout(()=>showPTab(status==='In Progress'?'progress':'completed'),350);
+  const dest = status==='In Progress'?'progress':status==='Completed'?'completed':status==='Planned'?'planned':'ideas';
+  setTimeout(()=>showPTab(dest),350);
 }
 function editProject(id){
   const p=projects.find(x=>x.id===id); if(!p) return;
@@ -1493,6 +1536,8 @@ function editProject(id){
   $('p-name').value=p.name||''; $('p-desc').value=p.desc||''; $('p-wood').value=p.wood||'';
   $('p-dims').value=p.dims||''; $('p-status').value=p.status||'Planned'; $('p-lessons').value=p.lessons||'';
   $('p-for').value=p.madeFor||'Self'; $('p-recipient').value=p.recipient||'';
+  if($('p-priority')) $('p-priority').value=p.priority||'';
+  if($('p-source-url')) $('p-source-url').value=p.sourceUrl||'';
   // Populate drive links
   const dlc=$('p-drive-links-container');
   if(dlc){
@@ -1522,6 +1567,7 @@ function collectProj(){
   const editId=gv('p-edit-id'), toolNames=tools.filter(t=>selToolIds.includes(t.id)).map(t=>t.name).join(', ');
   return { id:editId||genId(), ts:editId?(projects.find(x=>x.id===editId)?.ts||Date.now()):Date.now(), isEdit:!!editId,
     name:gv('p-name'),desc:gv('p-desc'),wood:gv('p-wood'),dims:gv('p-dims'),status:gv('p-status'),
+    priority:gv('p-priority'), sourceUrl:gv('p-source-url'),
     lessons:gv('p-lessons'),madeFor:gv('p-for'),recipient:gv('p-recipient'),
     driveLinks:getProjDriveLinks(),
     driveLink:getProjDriveLinks()[0]||'', // keep first for backward compat
@@ -1542,14 +1588,15 @@ function commitProj(p){
   if(p.isEdit){ const i=projects.findIndex(x=>x.id===p.id); if(i>-1) projects[i]=p; }
   else projects.unshift(p);
   saveLocal();
-  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes});
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
   showStatus(p.isEdit?'✅ Project updated!':'✅ Project saved!','ok');
   clearProjForm(); renderAllPLists(); selToolIds=[]; selTags=[];
   setTimeout(()=>showPTab(p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed'),350);
 }
 function clearProjForm(){
-  ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons'].forEach(id=>{const e=$(id);if(e)e.value='';});
-  $('p-edit-id').value=''; $('p-status').value='Planned'; $('p-for').value='Self';
+  ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons','p-source-url'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  $('p-edit-id').value=''; $('p-status').value='Planned';
+  if($('p-priority')) $('p-priority').value=''; $('p-for').value='Self';
   $('p-lessons-row').style.display='none'; $('p-recip-row').style.display='none';
   $('p-drive-previews') && ($('p-drive-previews').innerHTML='');
   // Reset drive links to just one empty field
@@ -2164,8 +2211,20 @@ Be practical, specific, concise. Use bullet points for steps.`;
 const FAQ_DATA = [
   { section: '🪵 Projects' },
   {
+    q: 'What is the Ideas tab?',
+    a: `The <strong>💡 Ideas</strong> tab is for project sparks — things you saw in a shop, online, or just thought of, that you're not ready to commit to yet. Ideas have all the same fields as a project (description, wood species, techniques, photos, linked resources, source URL) but live separately so your Planned list stays focused.<br><br>To add an idea: tap <strong>➕ Add</strong> and the Status will default to <strong>💡 Idea</strong>. Fill in whatever you know and save.<br><br>When you're ready to commit, tap <strong>📋 Promote to Planned</strong> on the idea card, or edit it and change the status.`
+  },
+  {
     q: 'How do I add a new project?',
-    a: `Tap the <strong>Projects</strong> tab → <strong>➕ Add</strong> sub-tab. Fill in the project name (required) and any other details. Set the status to <strong>Planned</strong>, <strong>In Progress</strong>, or <strong>Completed</strong>. Tap <strong>💾 Save Project</strong>.<br><br>The project will automatically appear in the correct tab (Planned, In Progress, or Completed) after saving.`
+    a: `Tap the <strong>Projects</strong> tab → <strong>➕ Add</strong> sub-tab. Fill in the project name (required) and any other details. Set the status — <strong>💡 Idea</strong> (default), <strong>Planned</strong>, <strong>In Progress</strong>, or <strong>Completed</strong>. Tap <strong>💾 Save Project</strong>.<br><br>The project will automatically appear in the correct tab after saving.`
+  },
+  {
+    q: 'How do I set priority on a Planned project?',
+    a: `When adding or editing a project with status <strong>Planned</strong>, there is a <strong>Priority</strong> dropdown — choose 🔴 High, 🟡 Medium, or 🟢 Low.<br><br>The Planned tab automatically sorts projects by priority: High first, then Medium, then Low. Projects with no priority set appear at the bottom.`
+  },
+  {
+    q: 'How do I convert an existing project to an Idea (or vice versa)?',
+    a: `Tap the <strong>⋯ button</strong> on any project card → <strong>✏️ Edit</strong>. Change the Status dropdown to <strong>💡 Idea</strong> (or from Idea to Planned, In Progress, etc.) and tap Update Project. It will move to the correct tab immediately.`
   },
   {
     q: 'How do I add a past project I already completed?',
