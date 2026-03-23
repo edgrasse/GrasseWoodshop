@@ -281,6 +281,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <h1>EG Custom Woodworking</h1>
       <div class="sub" id="build-time">Workshop Assistant</div>
     </div>
+    <button onclick="syncFromSheet()" style="margin-left:auto;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;flex-shrink:0;">🔄 Sync</button>
   </div>
 </div>
 <div class="tab-nav">
@@ -872,8 +873,9 @@ async function syncFromSheet() {
   showSyncBanners('syncing');
   try {
     const sheets = ['Projects','Tools','Inventory','Resources','Maintenance'];
+    const ts = Date.now(); // cache buster
     const results = await Promise.all(sheets.map(s =>
-      fetch(SCRIPT_URL + '?action=read&sheet=' + s, { mode:'cors' })
+      fetch(SCRIPT_URL + '?action=read&sheet=' + s + '&_=' + ts, { mode:'cors', cache:'no-store' })
         .then(r => r.json()).catch(() => null)
     ));
 
@@ -1858,7 +1860,8 @@ async function scanInvUrl() {
     stat.innerHTML = '⚠️ Error: ' + e.message;
   }
 }
-  const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
+
+function saveInvItem(){
   const loc=fullLoc('i');
   const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   inventory.push(item); saveLocal();
