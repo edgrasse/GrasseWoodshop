@@ -544,6 +544,24 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div id="add-inv-form" style="display:none;">
       <div class="card">
         <div class="card-title">📦 Add Inventory Item</div>
+
+        <!-- AI SCAN SECTION -->
+        <div class="card" style="background:var(--warm);border:1.5px dashed var(--accent);margin-bottom:13px;">
+          <div class="card-title" style="font-size:13px;">🤖 AI Auto-Fill (optional)</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Take a photo of the item OR paste a product URL — AI will fill in the form.</p>
+          <div class="photo-upload-area" style="margin-bottom:8px;" onclick="document.getElementById('i-scan-file').click()">
+            <div class="pu-icon" style="font-size:22px;">📷</div>
+            <p style="font-size:13px;">Tap to take photo or choose from library</p>
+          </div>
+          <input type="file" id="i-scan-file" accept="image/*" style="display:none" onchange="scanInvPhoto(event)">
+          <div style="text-align:center;font-size:12px;color:var(--muted);margin:6px 0;">— or —</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="url" id="i-scan-url" placeholder="Paste Amazon or product URL..." style="flex:1;font-size:13px;">
+            <button class="btn btn-secondary btn-sm" onclick="scanInvUrl()" style="white-space:nowrap;">🔍 Scan URL</button>
+          </div>
+          <div id="i-scan-status" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:18px;"></div>
+        </div>
+
         <div class="form-row"><label>Item Name *</label><input type="text" id="i-name" placeholder='e.g. Picture Hangers, 2" Brad Nails'></div>
         <div class="form-row"><label>Category</label>
           <select id="i-category">
@@ -1759,7 +1777,87 @@ function addMaintEntry(toolId){
 // ════════════════════════════════════════════════════════════════
 // INVENTORY
 // ════════════════════════════════════════════════════════════════
-function saveInvItem(){
+// ── INVENTORY AI SCAN ─────────────────────────────────────────────
+const INV_CATS = ['Fasteners','Hanging Hardware','Sandpaper & Abrasives','Finishing Supplies','Wood & Sheet Goods','Miscellaneous'];
+const INV_LOCS = ['Garage','Main Shop Bench','Back Shop Bench','Tall Cabinet','Third Shop Bench – Top','Third Shop Bench – Drawer','Craftsman Shop Bench – Top','Craftsman Shop Bench – Drawer','Tool Wall','Back Bench Wall','Lathe Wall','Upper Shelf'];
+
+function fillInvFields(p) {
+  let filled = 0;
+  if (p.name)     { $('i-name').value = p.name; filled++; }
+  if (p.category) {
+    // Match to closest category
+    const match = INV_CATS.find(c => c.toLowerCase().includes(p.category.toLowerCase()) || p.category.toLowerCase().includes(c.toLowerCase()));
+    if (match) { $('i-category').value = match; filled++; }
+  }
+  if (p.location) {
+    const match = INV_LOCS.find(l => l.toLowerCase().includes(p.location.toLowerCase()) || p.location.toLowerCase().includes(l.toLowerCase()));
+    if (match) { $('i-location').value = match; onLocChg('i'); filled++; }
+  }
+  return filled;
+}
+
+async function scanInvPhoto(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const stat = $('i-scan-status');
+  stat.innerHTML = '<span class="spinner dark"></span> Analyzing photo...';
+  try {
+    const b64 = await imageFileToJpegB64(file);
+    const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:300,
+        messages:[{ role:'user', content:[
+          { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 }},
+          { type:'text', text:`Identify this workshop inventory item (supply, consumable, hardware, material). Return ONLY JSON:\n{"name":"","category":"","location":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nLocation: only fill if you can clearly see a storage location label/tag, otherwise leave empty.\nName should be specific, e.g. "1-1/4 inch Brad Nails" or "220 Grit Sandpaper Sheets". No markdown.` }
+        ]}]
+      })
+    });
+    const d = await res.json();
+    let p = {};
+    try { p = JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}'); } catch(e){}
+    const filled = fillInvFields(p);
+    if (filled > 0) {
+      stat.innerHTML = `✅ ${filled} field${filled>1?'s':''} filled — review and complete below.`;
+      $('i-name').scrollIntoView({ behavior:'smooth', block:'center' });
+      $('i-name').style.borderColor = 'var(--accent)';
+      setTimeout(() => $('i-name').style.borderColor = '', 2500);
+    } else {
+      stat.innerHTML = '⚠️ Could not identify item. Try a clearer photo or fill in manually.';
+    }
+  } catch(e) {
+    stat.innerHTML = '⚠️ Error: ' + e.message;
+  }
+  ev.target.value = '';
+}
+
+async function scanInvUrl() {
+  const url = $('i-scan-url').value.trim();
+  if (!url) { showStatus('⚠️ Paste a product URL first','err'); return; }
+  const stat = $('i-scan-status');
+  stat.innerHTML = '<span class="spinner dark"></span> Reading product page...';
+  try {
+    const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:400,
+        tools:[{ type:'web_search_20250305', name:'web_search' }],
+        messages:[{ role:'user', content:`Look up this product URL and identify what it is as a woodworking shop inventory item: ${url}\n\nReturn ONLY a JSON object (no markdown):\n{"name":"","category":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nName should be specific with size/spec if available, e.g. "1-1/4 inch Brad Nails 1000-pack" or "220 Grit Sandpaper Sheets 50-pack".` }]
+      })
+    });
+    const d = await res.json();
+    // Extract text from response (may include tool_use blocks)
+    const textBlock = d.content?.find(c => c.type === 'text');
+    let p = {};
+    try { p = JSON.parse(textBlock?.text?.replace(/```json|```/g,'').trim()||'{}'); } catch(e){}
+    const filled = fillInvFields(p);
+    if (filled > 0) {
+      stat.innerHTML = `✅ ${filled} field${filled>1?'s':''} filled from URL — review below.`;
+      $('i-name').scrollIntoView({ behavior:'smooth', block:'center' });
+      $('i-name').style.borderColor = 'var(--accent)';
+      setTimeout(() => $('i-name').style.borderColor = '', 2500);
+    } else {
+      stat.innerHTML = '⚠️ Could not read product info. Try filling in manually.';
+    }
+  } catch(e) {
+    stat.innerHTML = '⚠️ Error: ' + e.message;
+  }
+}
   const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
   const loc=fullLoc('i');
   const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
@@ -1768,10 +1866,13 @@ function saveInvItem(){
   showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
 }
 function clearInvForm(){
-  ['i-name','i-notes'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['i-name','i-notes','i-scan-url'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('i-category').value='Fasteners'; $('i-location').value='';
   const t3=$('i-third-row'), tc=$('i-craftsman-row');
   if(t3) t3.style.display='none'; if(tc) tc.style.display='none';
+  const stat=$('i-scan-status'); if(stat) stat.innerHTML='';
+  const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
+  if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
 }
 function renderInvList(){
   const cont=$('inv-list'), cntEl=$('inv-count');
