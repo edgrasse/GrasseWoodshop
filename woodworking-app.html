@@ -474,6 +474,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <select id="t-category">
             <option value="Power Tools">Power Tools</option>
             <option value="Hand Tools">Hand Tools</option>
+            <option value="Jigs">Jigs</option>
             <option value="Measuring & Layout">Measuring & Layout</option>
             <option value="Finishing">Finishing</option>
             <option value="Clamps & Workholding">Clamps & Workholding</option>
@@ -598,6 +599,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
             <option value="Sandpaper & Abrasives">Sandpaper & Abrasives</option>
             <option value="Finishing Supplies">Finishing Supplies</option>
             <option value="Wood & Sheet Goods">Wood & Sheet Goods</option>
+            <option value="Jigs">Jigs</option>
             <option value="Miscellaneous">Miscellaneous</option>
           </select>
         </div>
@@ -791,6 +793,16 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onChatPhoto(event)">
         <img id="chat-thumb" class="chat-thumb-img" style="display:none;">
         <span id="chat-photo-clear" class="clear-photo" style="display:none;" onclick="clearChatPhoto()">✕ Remove</span>
+        <button id="work-mode-btn" onclick="toggleWorkMode()" style="margin-left:auto;background:none;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;">🔧 Work Mode</button>
+      </div>
+      <div id="work-mode-panel" style="display:none;background:var(--cream);border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">🔧 Step-by-Step Work Mode</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Paste plans, describe your project, or provide a URL. Say "done" or "next" to advance steps.</div>
+        <textarea id="work-context" placeholder="Paste plans, describe what you're building, or paste a URL to plans..." style="width:100%;min-height:60px;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:8px;box-sizing:border-box;resize:vertical;" rows="3"></textarea>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <button onclick="startWorkMode()" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">▶ Start Guide</button>
+          <span id="work-step-badge" style="font-size:12px;color:var(--accent);font-weight:600;"></span>
+        </div>
       </div>
       <div class="chat-input-row">
         <textarea id="chat-input" placeholder="Ask anything about woodworking..." rows="2"
@@ -845,6 +857,8 @@ let customTags = [];
 let selToolIds = [], selTags = [], filters = {}, resFilters = {};
 let pendingProj = null, projFiles = [], toolFile = null;
 let chatB64 = null, chatMime = null;
+let chatHistory = []; // full conversation history for Advisor memory
+let workMode = false; // step-by-step Work Mode toggle
 
 // ════════════════════════════════════════════════════════════════
 // DATA MIGRATION — recovers data from any previous key name
@@ -1524,7 +1538,7 @@ function applyMove(id,status,lessons){
   const p=projects.find(x=>x.id===id); if(!p) return;
   p.status=status; if(lessons) p.lessons=lessons;
   saveLocal();
-  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,status:p.status,lessons:p.lessons||''});
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
   showStatus(`✅ Moved to ${status}`,'ok'); renderAllPLists();
   const dest = status==='In Progress'?'progress':status==='Completed'?'completed':status==='Planned'?'planned':'ideas';
   setTimeout(()=>showPTab(dest),350);
@@ -2173,20 +2187,28 @@ function chatAppend(role,text,hasPhoto=false){
   d.innerHTML=`<div class="sender">${role==='user'?'You':'Advisor'}</div><div class="chat-bubble">${hasPhoto?'📷 ':''}${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
-async function sendChat(){
-  const input=$('chat-input'), msg=input.value.trim(); if(!msg&&!chatB64) return;
-  const hasPhoto=!!chatB64; chatAppend('user',msg||'(photo)',hasPhoto); input.value='';
-  $('send-btn').disabled=true;
-  const ld=document.createElement('div'); ld.className='chat-msg ai'; ld.id='ld';
-  ld.innerHTML='<div class="sender">Advisor</div><div class="chat-bubble"><span class="spinner dark"></span></div>';
-  $('chat-messages').appendChild(ld); $('chat-messages').scrollTop=99999;
-  const toolSum=tools.length?tools.map(t=>`${t.name}${t.brand?' ('+t.brand+')':''}${t.location?' @ '+t.location:''}`).join(', '):'No tools inventoried yet';
+
+function toggleWorkMode(){
+  workMode=!workMode;
+  $('work-mode-panel').style.display=workMode?'block':'none';
+  const btn=$('work-mode-btn');
+  btn.style.background=workMode?'var(--accent)':'none';
+  btn.style.color=workMode?'white':'var(--accent)';
+  btn.textContent=workMode?'✕ Exit Work Mode':'🔧 Work Mode';
+}
+
+function buildSystemPrompt(){
+  const toolList=tools.map(t=>`${t.name}${t.brand?' ('+t.brand+')':''}${t.cat?' ['+t.cat+']':''}${t.notes?' — '+t.notes:''}`);
+  const jigList=tools.filter(t=>t.cat==='Jigs').map(t=>`• ${t.name}${t.notes?' — '+t.notes:''}`);
+  const toolSum=toolList.length?toolList.join('\n'):'No tools inventoried yet';
+  const jigSum=jigList.length?`\n\nJIGS (${jigList.length} available):\n${jigList.join('\n')}`:'';
   const projSum=projects.length?projects.slice(0,25).map(p=>`[${p.status}] ${p.name}${p.wood?' — '+p.wood:''}${(p.tags||[]).length?' ['+p.tags.join(',')+']':''}${p.lessons?'\nLessons: '+p.lessons:''}`).join('\n'):'No projects logged yet';
   const resSum=resources.length?resources.slice(0,15).map(r=>`[${r.type}] ${r.title}${r.url?' — '+r.url:''}`).join('\n'):'No resources saved yet';
-  const sys=`You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
+  const workInstr=workMode?`\n\nWORK MODE ACTIVE: You are guiding Ed step by step through a project. Lay out all numbered steps clearly upfront. When he says "done", "next", or "finished with step X", confirm that step and walk him through the next one with full detail. When he asks a question mid-step, answer it and then return to the current step. Keep track of which step you're on.`:'';
+  return `You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
 
-TOOL INVENTORY (ONLY suggest these tools):
-${toolSum}
+TOOL INVENTORY (ONLY suggest these tools when making recommendations):
+${toolSum}${jigSum}
 
 PROJECT HISTORY:
 ${projSum}
@@ -2195,14 +2217,57 @@ SAVED RESOURCES (reference these when relevant):
 ${resSum}
 
 SKILL LEVEL: Intermediate — understands joinery, reads plans, operates shop tools safely.
-Be practical, specific, concise. Use bullet points for steps.`;
-  const uc=[]; if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:chatMime,data:chatB64}});
+Be practical, specific, concise. Use bullet points for steps.${workInstr}`;
+}
+
+async function startWorkMode(){
+  const ctx=$('work-context').value.trim();
+  if(!ctx){ showStatus('⚠️ Please describe your project or paste plans first','err'); return; }
+  $('work-step-badge').textContent='Setting up…';
+  const prompt=`I want step-by-step guidance. Please:\n1. Briefly confirm what we're building\n2. List all the steps numbered clearly\n3. Then walk me through Step 1 in full detail and wait for me to say "done" or "next"\n\nProject/Plans:\n${ctx}`;
+  $('work-context').value='';
+  await _doSend(prompt, null, null);
+  $('work-step-badge').textContent='Work Mode active — say "done" to advance';
+}
+
+async function sendChat(){
+  const input=$('chat-input'), msg=input.value.trim();
+  if(!msg&&!chatB64) return;
+  const b64=chatB64, mime=chatMime;
+  input.value=''; clearChatPhoto();
+  await _doSend(msg, b64, mime);
+}
+
+async function _doSend(msg, b64, mime){
+  const hasPhoto=!!b64;
+  chatAppend('user', msg||'(photo)', hasPhoto);
+  $('send-btn').disabled=true;
+  const ld=document.createElement('div'); ld.className='chat-msg ai'; ld.id='ld';
+  ld.innerHTML='<div class="sender">Advisor</div><div class="chat-bubble"><span class="spinner dark"></span></div>';
+  $('chat-messages').appendChild(ld); $('chat-messages').scrollTop=99999;
+
+  const uc=[];
+  if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:mime,data:b64}});
   uc.push({type:"text",text:msg||"Analyze this woodworking image — identify wood species, grain, defects, or describe what you see and provide relevant advice."});
+
+  // Add to history, keep last 20 turns (10 exchanges)
+  chatHistory.push({role:"user",content:uc});
+  if(chatHistory.length>20) chatHistory=chatHistory.slice(-20);
+
   try {
-    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:sys,messages:[{role:"user",content:uc}]})});
-    const d=await res.json(); $('ld')?.remove(); chatAppend('ai',d.content?.[0]?.text||'Sorry, no response. Try again.');
-  } catch(e){ $('ld')?.remove(); chatAppend('ai','⚠️ Connection error. Check your API key and internet.'); }
-  $('send-btn').disabled=false; clearChatPhoto();
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1200,system:buildSystemPrompt(),messages:chatHistory})});
+    const data=await res.json();
+    $('ld')?.remove();
+    const reply=data.content?.[0]?.text||'Sorry, no response. Try again.';
+    chatAppend('ai', reply);
+    chatHistory.push({role:"assistant",content:[{type:"text",text:reply}]});
+  } catch(e){
+    $('ld')?.remove();
+    chatAppend('ai','⚠️ Connection error. Check your API key and internet.');
+    chatHistory.pop(); // remove failed user message
+  }
+  $('send-btn').disabled=false;
 }
 
 // ════════════════════════════════════════════════════════════════
