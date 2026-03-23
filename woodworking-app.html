@@ -853,13 +853,13 @@ function loadLocal() {
 async function syncFromSheet() {
   showSyncBanners('syncing');
   try {
-    const sheets = ['Projects','Tools','Inventory','Resources'];
+    const sheets = ['Projects','Tools','Inventory','Resources','Maintenance'];
     const results = await Promise.all(sheets.map(s =>
       fetch(SCRIPT_URL + '?action=read&sheet=' + s, { mode:'cors' })
         .then(r => r.json()).catch(() => null)
     ));
 
-    const [pData, tData, iData, rData] = results;
+    const [pData, tData, iData, rData, mData] = results;
 
     if (pData?.rows?.length) {
       // Build a map of existing local projects to preserve any local-only data
@@ -923,6 +923,22 @@ async function syncFromSheet() {
       })).filter(r => { if(seen.has(r.id)) return false; seen.add(r.id); return true; });
     }
 
+    // Restore maintenance log entries from Maintenance sheet
+    if (mData?.rows?.length) {
+      mData.rows.forEach(r => {
+        const toolId = r[1]||'', date = r[3]||'', note = r[4]||'';
+        if (!toolId || !note) return;
+        const tool = tools.find(t => t.id === toolId);
+        if (tool) {
+          if (!tool.maintLog) tool.maintLog = [];
+          // Avoid duplicates
+          if (!tool.maintLog.some(m => m.date === date && m.note === note)) {
+            tool.maintLog.push({ date, note });
+            tool.hasMaint = true;
+          }
+        }
+      });
+    }
     saveLocal();
     showSyncBanners('done');
     renderAll();
