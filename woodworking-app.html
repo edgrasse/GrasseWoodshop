@@ -1580,6 +1580,8 @@ function refreshDrivePreviews() {
   }).join('');
 }
 
+function toggleMaintSec(){ $('t-maint-sec').style.display=$('t-maint-toggle').checked?'block':'none'; }
+
 function toggleToolChips() {
   const wrap = $('tool-chips-wrap');
   const btn  = $('tool-chips-toggle');
