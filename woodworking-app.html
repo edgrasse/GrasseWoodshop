@@ -455,6 +455,28 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         <button class="btn btn-primary btn-sm" id="add-type-tool" onclick="setAddType('tool')" style="flex:1;">🔧 Add Tool</button>
         <button class="btn btn-secondary btn-sm" id="add-type-inv" onclick="setAddType('inv')" style="flex:1;">📦 Add Inventory</button>
       </div>
+      <div style="margin-top:11px;padding:10px;background:#f5f0eb;border-radius:8px;border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:var(--charcoal);">📍 Location Lock</span>
+          <select id="loc-lock-select" style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;" onchange="applyLocLock()">
+            <option value="">Off — pick location per item</option>
+            <option value="Garage">Garage</option>
+            <option value="Main Shop Bench">Main Shop Bench</option>
+            <option value="Back Shop Bench">Back Shop Bench</option>
+            <option value="Tall Cabinet">Tall Cabinet</option>
+            <option value="Third Shop Bench - Top">Third Shop Bench – Top</option>
+            <option value="Third Shop Bench - Drawer">Third Shop Bench – Drawer</option>
+            <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
+            <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer</option>
+            <option value="Tool Wall">Tool Wall</option>
+            <option value="Wood Wall">Wood Wall</option>
+            <option value="Back Bench Wall">Back Bench Wall</option>
+            <option value="Lathe Wall">Lathe Wall</option>
+            <option value="Upper Shelf">Upper Shelf</option>
+          </select>
+        </div>
+        <div id="loc-lock-msg" style="display:none;font-size:11px;color:var(--accent);margin-top:5px;font-weight:600;">📌 All new items will be saved to this location</div>
+      </div>
     </div>
 
     <!-- TOOL FORM -->
@@ -500,6 +522,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
             <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
             <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
             <option value="Tool Wall">Tool Wall</option>
+            <option value="Wood Wall">Wood Wall</option>
             <option value="Back Bench Wall">Back Bench Wall</option>
             <option value="Lathe Wall">Lathe Wall</option>
             <option value="Upper Shelf">Upper Shelf</option>
@@ -599,7 +622,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
             <option value="Sandpaper & Abrasives">Sandpaper & Abrasives</option>
             <option value="Finishing Supplies">Finishing Supplies</option>
             <option value="Wood & Sheet Goods">Wood & Sheet Goods</option>
-            <option value="Jigs">Jigs</option>
             <option value="Miscellaneous">Miscellaneous</option>
           </select>
         </div>
@@ -615,6 +637,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
             <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
             <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
             <option value="Tool Wall">Tool Wall</option>
+            <option value="Wood Wall">Wood Wall</option>
             <option value="Back Bench Wall">Back Bench Wall</option>
             <option value="Lathe Wall">Lathe Wall</option>
             <option value="Upper Shelf">Upper Shelf</option>
@@ -664,6 +687,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <option value="Craftsman Shop Bench - Top">Craftsman Shop Bench – Top</option>
           <option value="Craftsman Shop Bench - Drawer">Craftsman Shop Bench – Drawer…</option>
           <option value="Tool Wall">Tool Wall</option>
+          <option value="Wood Wall">Wood Wall</option>
           <option value="Back Bench Wall">Back Bench Wall</option>
           <option value="Lathe Wall">Lathe Wall</option>
           <option value="Upper Shelf">Upper Shelf</option>
@@ -793,16 +817,12 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display:none" onchange="onChatPhoto(event)">
         <img id="chat-thumb" class="chat-thumb-img" style="display:none;">
         <span id="chat-photo-clear" class="clear-photo" style="display:none;" onclick="clearChatPhoto()">✕ Remove</span>
-        <button id="work-mode-btn" onclick="toggleWorkMode()" style="margin-left:auto;background:none;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;">🔧 Work Mode</button>
+        <button id="work-mode-btn" class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="toggleWorkMode()">🔧 Work Mode</button>
       </div>
-      <div id="work-mode-panel" style="display:none;background:var(--cream);border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">🔧 Step-by-Step Work Mode</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Paste plans, describe your project, or provide a URL. Say "done" or "next" to advance steps.</div>
-        <textarea id="work-context" placeholder="Paste plans, describe what you're building, or paste a URL to plans..." style="width:100%;min-height:60px;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:8px;box-sizing:border-box;resize:vertical;" rows="3"></textarea>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-          <button onclick="startWorkMode()" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">▶ Start Guide</button>
-          <span id="work-step-badge" style="font-size:12px;color:var(--accent);font-weight:600;"></span>
-        </div>
+      <div id="work-mode-panel" style="display:none;padding:10px 0 6px;">
+        <div style="font-size:12px;font-weight:600;color:var(--charcoal);margin-bottom:6px;">📋 Paste plans, describe the project, or enter a URL:</div>
+        <textarea id="work-mode-plans" placeholder="Paste plans, steps, a URL, or describe what you're building..." rows="4" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px;font-size:13px;resize:vertical;"></textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:7px;width:100%;" onclick="startWorkMode()">▶ Start Guide</button>
       </div>
       <div class="chat-input-row">
         <textarea id="chat-input" placeholder="Ask anything about woodworking..." rows="2"
@@ -857,8 +877,6 @@ let customTags = [];
 let selToolIds = [], selTags = [], filters = {}, resFilters = {};
 let pendingProj = null, projFiles = [], toolFile = null;
 let chatB64 = null, chatMime = null;
-let chatHistory = []; // full conversation history for Advisor memory
-let workMode = false; // step-by-step Work Mode toggle
 
 // ════════════════════════════════════════════════════════════════
 // DATA MIGRATION — recovers data from any previous key name
@@ -1324,6 +1342,18 @@ function setAddType(type) {
   $('add-type-tool').className = 'btn btn-sm'+(type==='tool'?' btn-primary':' btn-secondary');
   $('add-type-inv').className  = 'btn btn-sm'+(type==='inv' ?' btn-primary':' btn-secondary');
   $('add-type-tool').style.flex = $('add-type-inv').style.flex = '1';
+  applyLocLock();
+}
+
+function applyLocLock() {
+  const lock = ($('loc-lock-select')?.value)||'';
+  const msg = $('loc-lock-msg');
+  if(msg) msg.style.display = lock ? 'block' : 'none';
+  if(!lock) return;
+  const tLoc = $('t-location');
+  if(tLoc) { tLoc.value = lock; onLocChg('t'); }
+  const iLoc = $('i-location');
+  if(iLoc) { iLoc.value = lock; onLocChg('i'); }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1482,9 +1512,9 @@ function renderPList(type){
     completed: {filter:p=>p.status==='Completed',     srch:'srch-completed', cont:'plist-completed', icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'}
   }[type]; if(!cfg) return;
   let filtered = filterList(projects.filter(cfg.filter), cfg.srch, type);
-  // Sort planned by priority
-  if(type==='planned') {
-    filtered = filtered.slice().sort((a,b)=>(PRIORITY_ORDER[a.priority||'']||3)-(PRIORITY_ORDER[b.priority||'']||3));
+  // Sort planned and ideas by priority
+  if(type==='planned' || type==='ideas') {
+    filtered = filtered.slice().sort((a,b)=>(PRIORITY_ORDER[a.priority||'']??3)-(PRIORITY_ORDER[b.priority||'']??3));
   }
   const cont=$(cfg.cont);
   if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
@@ -1538,7 +1568,7 @@ function applyMove(id,status,lessons){
   const p=projects.find(x=>x.id===id); if(!p) return;
   p.status=status; if(lessons) p.lessons=lessons;
   saveLocal();
-  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).filter(Boolean).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
   showStatus(`✅ Moved to ${status}`,'ok'); renderAllPLists();
   const dest = status==='In Progress'?'progress':status==='Completed'?'completed':status==='Planned'?'planned':'ideas';
   setTimeout(()=>showPTab(dest),350);
@@ -1726,7 +1756,7 @@ async function scanToolPhoto(ev){
       body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,
         messages:[{role:"user",content:[
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
-          {type:"text",text:'Identify this woodworking tool or its label sticker. Return ONLY a JSON object (no markdown, no explanation):\n{"name":"","brand":"","model":"","serial":"","category":""}\nCategory must be one of: Power Tools, Hand Tools, Measuring & Layout, Finishing, Clamps & Workholding, Safety, Other\nIf you cannot read a field clearly, leave it as empty string.'}
+          {type:"text",text:'Identify this woodworking tool, jig, or its label sticker. Return ONLY a JSON object (no markdown, no explanation):\n{"name":"","brand":"","model":"","serial":"","category":"","notes":""}\nCategory must be one of: Power Tools, Hand Tools, Jigs, Measuring & Layout, Finishing, Clamps & Workholding, Safety, Other\nIf this appears to be a jig (shop-made fixture), set category to "Jigs" and describe what it does and how it is used in the "notes" field.\nIf you cannot read a field clearly, leave it as empty string.'}
         ]}]
       })
     });
@@ -1745,6 +1775,7 @@ async function scanToolPhoto(ev){
     if(p.model)    { $('t-model').value    = p.model;    filled++; }
     if(p.serial)   { $('t-serial').value   = p.serial;   filled++; }
     if(p.category) { $('t-category').value = p.category; filled++; }
+    if(p.notes)    { $('t-notes').value    = p.notes;    filled++; }
 
     if(filled > 0) {
       stat.innerHTML=`✅ ${filled} field${filled>1?'s':''} filled — scroll down to review and complete.`;
@@ -1791,6 +1822,7 @@ function clearToolForm(){
   const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
   if($('scan-file')) $('scan-file').dataset.editId='';
+  applyLocLock(); // re-apply location lock for next item
 }
 
 function renderToolList(){
@@ -1812,7 +1844,10 @@ function renderToolList(){
           <div class="item-info">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
               <div class="item-name">${t.name}</div>
-              ${menuBtn(t.id,'tool')}
+              <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+                <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editTool('${t.id}')">✏️ Edit</button>
+                <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${t.id}','tool')">🗑️</button>
+              </div>
             </div>
             <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}</div>
             <div style="margin-top:3px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
@@ -1842,7 +1877,7 @@ function addMaintEntry(toolId){
 // ════════════════════════════════════════════════════════════════
 // ── INVENTORY AI SCAN ─────────────────────────────────────────────
 const INV_CATS = ['Fasteners','Hanging Hardware','Sandpaper & Abrasives','Finishing Supplies','Wood & Sheet Goods','Miscellaneous'];
-const INV_LOCS = ['Garage','Main Shop Bench','Back Shop Bench','Tall Cabinet','Third Shop Bench – Top','Third Shop Bench – Drawer','Craftsman Shop Bench – Top','Craftsman Shop Bench – Drawer','Tool Wall','Back Bench Wall','Lathe Wall','Upper Shelf'];
+const INV_LOCS = ['Garage','Main Shop Bench','Back Shop Bench','Tall Cabinet','Third Shop Bench – Top','Third Shop Bench – Drawer','Craftsman Shop Bench – Top','Craftsman Shop Bench – Drawer','Tool Wall','Wood Wall','Back Bench Wall','Lathe Wall','Upper Shelf'];
 
 function fillInvFields(p) {
   let filled = 0;
@@ -1937,6 +1972,7 @@ function clearInvForm(){
   const stat=$('i-scan-status'); if(stat) stat.innerHTML='';
   const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
+  applyLocLock(); // re-apply location lock for next item
 }
 function renderInvList(){
   const cont=$('inv-list'), cntEl=$('inv-count');
@@ -1954,7 +1990,10 @@ function renderInvList(){
         <div class="item-info">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div class="item-name">${i.name}</div>
-            ${menuBtn(i.id,'inventory')}
+            <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+              <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editInvItem('${i.id}')">✏️ Edit</button>
+              <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${i.id}','inventory')">🗑️</button>
+            </div>
           </div>
           <div class="item-meta">${i.location?'📍 '+i.location:''}${i.notes?'<br>'+i.notes:''}</div>
         </div>
@@ -2161,10 +2200,12 @@ function renderResList() {
 // ════════════════════════════════════════════════════════════════
 // AI ADVISOR
 // ════════════════════════════════════════════════════════════════
+let chatHistory = []; // full conversation history for memory
+let workMode = false; // step-by-step mode flag
+
 function onChatPhoto(ev){
   const f=ev.target.files[0]; if(!f) return;
-  chatMime='image/jpeg'; // always send as JPEG
-  // Convert via canvas to handle HEIC on iPhone
+  chatMime='image/jpeg';
   const url=URL.createObjectURL(f);
   const img=new Image();
   img.onload=()=>{
@@ -2182,33 +2223,50 @@ function onChatPhoto(ev){
   img.src=url;
 }
 function clearChatPhoto(){ chatB64=null; chatMime=null; $('chat-thumb').style.display='none'; $('chat-photo-clear').style.display='none'; $('chat-photo-input').value=''; }
-function chatAppend(role,text,hasPhoto=false){
-  const c=$('chat-messages'), d=document.createElement('div'); d.className='chat-msg '+role;
-  d.innerHTML=`<div class="sender">${role==='user'?'You':'Advisor'}</div><div class="chat-bubble">${hasPhoto?'📷 ':''}${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
-  c.appendChild(d); c.scrollTop=c.scrollHeight;
-}
 
 function toggleWorkMode(){
   workMode=!workMode;
-  $('work-mode-panel').style.display=workMode?'block':'none';
-  const btn=$('work-mode-btn');
-  btn.style.background=workMode?'var(--accent)':'none';
-  btn.style.color=workMode?'white':'var(--accent)';
-  btn.textContent=workMode?'✕ Exit Work Mode':'🔧 Work Mode';
+  const btn=$('work-mode-btn'), panel=$('work-mode-panel');
+  if(workMode){
+    btn.textContent='✕ Exit Work Mode'; btn.style.background='var(--accent)'; btn.style.color='#fff';
+    panel.style.display='block';
+  } else {
+    workMode=false; btn.textContent='🔧 Work Mode'; btn.style.background=''; btn.style.color='';
+    panel.style.display='none'; $('work-mode-plans').value='';
+  }
+}
+
+async function startWorkMode(){
+  const plans=$('work-mode-plans').value.trim();
+  if(!plans){ showStatus('⚠️ Paste plans or describe the project first','err'); return; }
+  $('work-mode-panel').style.display='none'; // collapse panel, normal input takes over
+  chatAppend('user','[Starting Work Mode]\n'+plans,false);
+  await _doSend('[WORK_MODE_START]\n'+plans, null, null);
 }
 
 function buildSystemPrompt(){
-  const toolList=tools.map(t=>`${t.name}${t.brand?' ('+t.brand+')':''}${t.cat?' ['+t.cat+']':''}${t.notes?' — '+t.notes:''}`);
-  const jigList=tools.filter(t=>t.cat==='Jigs').map(t=>`• ${t.name}${t.notes?' — '+t.notes:''}`);
-  const toolSum=toolList.length?toolList.join('\n'):'No tools inventoried yet';
-  const jigSum=jigList.length?`\n\nJIGS (${jigList.length} available):\n${jigList.join('\n')}`:'';
-  const projSum=projects.length?projects.slice(0,25).map(p=>`[${p.status}] ${p.name}${p.wood?' — '+p.wood:''}${(p.tags||[]).length?' ['+p.tags.join(',')+']':''}${p.lessons?'\nLessons: '+p.lessons:''}`).join('\n'):'No projects logged yet';
-  const resSum=resources.length?resources.slice(0,15).map(r=>`[${r.type}] ${r.title}${r.url?' — '+r.url:''}`).join('\n'):'No resources saved yet';
-  const workInstr=workMode?`\n\nWORK MODE ACTIVE: You are guiding Ed step by step through a project. Lay out all numbered steps clearly upfront. When he says "done", "next", or "finished with step X", confirm that step and walk him through the next one with full detail. When he asks a question mid-step, answer it and then return to the current step. Keep track of which step you're on.`:'';
-  return `You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
+  const nonJigTools=tools.filter(t=>t.cat!=='Jigs');
+  const toolSum=nonJigTools.length
+    ? nonJigTools.map(t=>`${t.name}${t.brand?' ('+t.brand+')':''}${t.location?' @ '+t.location:''}${t.notes?' — '+t.notes:''}`).join(', ')
+    : 'No tools inventoried yet';
+  const jigsArr=tools.filter(t=>t.cat==='Jigs');
+  const jigsText=jigsArr.length
+    ? jigsArr.map(j=>`• ${j.name}${j.notes?' — '+j.notes:''}${j.location?' (location: '+j.location+')':''}`).join('\n')
+    : 'No jigs inventoried yet';
+  const projSum=projects.length
+    ? projects.slice(0,25).map(p=>`[${p.status}] ${p.name}${p.wood?' — '+p.wood:''}${(p.tags||[]).length?' ['+p.tags.join(',')+']':''}${p.lessons?'\nLessons: '+p.lessons:''}`).join('\n')
+    : 'No projects logged yet';
+  const resSum=resources.length
+    ? resources.slice(0,15).map(r=>`[${r.type}] ${r.title}${r.url?' — '+r.url:''}`).join('\n')
+    : 'No resources saved yet';
 
-TOOL INVENTORY (ONLY suggest these tools when making recommendations):
-${toolSum}${jigSum}
+  let sys=`You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
+
+TOOL INVENTORY (ONLY suggest these tools):
+${toolSum}
+
+JIGS (custom shop-made fixtures — recommend these when applicable):
+${jigsText}
 
 PROJECT HISTORY:
 ${projSum}
@@ -2217,58 +2275,61 @@ SAVED RESOURCES (reference these when relevant):
 ${resSum}
 
 SKILL LEVEL: Intermediate — understands joinery, reads plans, operates shop tools safely.
-Be practical, specific, concise. Use bullet points for steps.${workInstr}`;
+Be practical, specific, concise. Use bullet points for steps.`;
+
+  if(workMode){
+    sys+=`
+
+WORK MODE ACTIVE: You are guiding Ed step-by-step through a project.
+- First response: list ALL steps numbered, then walk through Step 1 in full detail.
+- When Ed says "done", "next", "ok", or "ready": advance to the next step.
+- If Ed asks a question mid-step: answer it fully, then remind him where he is and what's next.
+- Track the current step number through the conversation.`;
+  }
+  return sys;
 }
 
-async function startWorkMode(){
-  const ctx=$('work-context').value.trim();
-  if(!ctx){ showStatus('⚠️ Please describe your project or paste plans first','err'); return; }
-  $('work-step-badge').textContent='Setting up…';
-  const prompt=`I want step-by-step guidance. Please:\n1. Briefly confirm what we're building\n2. List all the steps numbered clearly\n3. Then walk me through Step 1 in full detail and wait for me to say "done" or "next"\n\nProject/Plans:\n${ctx}`;
-  $('work-context').value='';
-  await _doSend(prompt, null, null);
-  $('work-step-badge').textContent='Work Mode active — say "done" to advance';
-}
-
-async function sendChat(){
-  const input=$('chat-input'), msg=input.value.trim();
-  if(!msg&&!chatB64) return;
-  const b64=chatB64, mime=chatMime;
-  input.value=''; clearChatPhoto();
-  await _doSend(msg, b64, mime);
+function chatAppend(role,text,hasPhoto=false){
+  const c=$('chat-messages'), d=document.createElement('div'); d.className='chat-msg '+role;
+  d.innerHTML=`<div class="sender">${role==='user'?'You':'Advisor'}</div><div class="chat-bubble">${hasPhoto?'📷 ':''}${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
 async function _doSend(msg, b64, mime){
-  const hasPhoto=!!b64;
-  chatAppend('user', msg||'(photo)', hasPhoto);
   $('send-btn').disabled=true;
   const ld=document.createElement('div'); ld.className='chat-msg ai'; ld.id='ld';
   ld.innerHTML='<div class="sender">Advisor</div><div class="chat-bubble"><span class="spinner dark"></span></div>';
   $('chat-messages').appendChild(ld); $('chat-messages').scrollTop=99999;
 
+  // Build user content block
   const uc=[];
-  if(hasPhoto) uc.push({type:"image",source:{type:"base64",media_type:mime,data:b64}});
+  if(b64) uc.push({type:"image",source:{type:"base64",media_type:mime,data:b64}});
   uc.push({type:"text",text:msg||"Analyze this woodworking image — identify wood species, grain, defects, or describe what you see and provide relevant advice."});
 
-  // Add to history, keep last 20 turns (10 exchanges)
-  chatHistory.push({role:"user",content:uc});
-  if(chatHistory.length>20) chatHistory=chatHistory.slice(-20);
+  // Add to history
+  chatHistory.push({role:"user", content:uc});
+  if(chatHistory.length>40) chatHistory=chatHistory.slice(-40); // cap at 20 turns
 
   try {
     const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1200,system:buildSystemPrompt(),messages:chatHistory})});
-    const data=await res.json();
+    const d=await res.json();
     $('ld')?.remove();
-    const reply=data.content?.[0]?.text||'Sorry, no response. Try again.';
-    chatAppend('ai', reply);
+    const reply=d.content?.[0]?.text||'Sorry, no response. Try again.';
     chatHistory.push({role:"assistant",content:[{type:"text",text:reply}]});
-  } catch(e){
-    $('ld')?.remove();
-    chatAppend('ai','⚠️ Connection error. Check your API key and internet.');
-    chatHistory.pop(); // remove failed user message
-  }
-  $('send-btn').disabled=false;
+    if(chatHistory.length>40) chatHistory=chatHistory.slice(-40);
+    chatAppend('ai',reply);
+  } catch(e){ $('ld')?.remove(); chatAppend('ai','⚠️ Connection error. Check your API key and internet.'); }
+  $('send-btn').disabled=false; clearChatPhoto();
 }
+
+async function sendChat(){
+  const input=$('chat-input'), msg=input.value.trim(); if(!msg&&!chatB64) return;
+  const hasPhoto=!!chatB64, b64=chatB64, mime=chatMime;
+  chatAppend('user',msg||'(photo)',hasPhoto); input.value='';
+  await _doSend(msg, b64, mime);
+}
+
 
 // ════════════════════════════════════════════════════════════════
 // FAQ
