@@ -286,10 +286,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <h1>EG Custom Woodworking</h1>
       <div class="sub" id="build-time">Workshop Assistant</div>
     </div>
-    <div style="display:flex;gap:5px;margin-left:auto;flex-shrink:0;">
-      <button onclick="syncFromSheet()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;">🔄 Sync</button>
-      <button onclick="forcePushToSheet()" style="background:rgba(196,119,59,0.7);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;" title="Push this device to Sheet">⬆️ Push</button>
-    </div>
+    <button onclick="syncFromSheet()" style="margin-left:auto;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;flex-shrink:0;">🔄 Sync</button>
   </div>
 </div>
 <div class="tab-nav">
@@ -1086,43 +1083,6 @@ function showStatus(msg, type='', ms=2800) {
 function toSheet(p) { fetch(SCRIPT_URL+'?'+new URLSearchParams(p).toString(),{method:'GET',mode:'no-cors'}).catch(()=>{}); }
 function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
 function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
-
-// ════════════════════════════════════════════════════════════════
-// FORCE PUSH — write all local data to Sheet
-// ════════════════════════════════════════════════════════════════
-async function forcePushToSheet() {
-  if (!confirm('Force Push will overwrite your Google Sheet with the data on THIS device.\n\nUse this when this device has the correct/most complete data.\n\nContinue?')) return;
-  showStatus('⬆️ Pushing to Sheet...','',8000);
-  let count = 0;
-  // Push projects
-  for (const p of projects) {
-    toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),
-      name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,
-      lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,
-      driveLink:(p.driveLinks||[p.driveLink]).filter(Boolean).join(' | '),
-      tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),
-      notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
-    count++;
-    await new Promise(r=>setTimeout(r,80)); // small delay to avoid rate limiting
-  }
-  // Push tools
-  for (const t of tools) {
-    toSheet({action:'save',sheet:'Tools',id:t.id,timestamp:new Date(t.ts).toISOString(),
-      category:t.cat,name:t.name,brand:t.brand,model:t.model,serial:t.serial,
-      purchaseDate:t.date,price:t.price,location:t.location,manual:t.manual,
-      condition:t.condition,notes:t.notes,driveLink:t.driveLink,hasMaintLog:t.hasMaint?'Yes':'No'});
-    count++;
-    await new Promise(r=>setTimeout(r,80));
-  }
-  // Push inventory
-  for (const i of inventory) {
-    toSheet({action:'save',sheet:'Inventory',id:i.id,timestamp:new Date(i.ts).toISOString(),
-      name:i.name,category:i.category,location:i.location,notes:i.notes});
-    count++;
-    await new Promise(r=>setTimeout(r,80));
-  }
-  showStatus(`✅ Pushed ${count} items to Sheet. Wait 10s then sync other devices.`,'ok',6000);
-}
 
 // ════════════════════════════════════════════════════════════════
 // VIEW TOGGLES (compact / full)
