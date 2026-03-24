@@ -961,14 +961,16 @@ function loadLocal() {
 async function syncFromSheet() {
   showSyncBanners('syncing');
   try {
-    const sheets = ['Projects','Tools','Inventory','Resources','Maintenance'];
-    const ts = Date.now(); // cache buster
-    const results = await Promise.all(sheets.map(s =>
-      fetch(SCRIPT_URL + '?action=read&sheet=' + s + '&_=' + ts, { mode:'cors', cache:'no-store' })
-        .then(r => r.json()).catch(() => null)
-    ));
+    const ts = Date.now();
+    const res = await fetch(SCRIPT_URL + '?action=sync&_=' + ts, { mode:'cors', cache:'no-store' });
+    const all = await res.json();
 
-    const [pData, tData, iData, rData, mData] = results;
+    // Map the sync response (keyed by sheet name) to the format the rest of the function expects
+    const pData = all.Projects ? { rows: all.Projects.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Description,obj['Wood Species'],obj.Dimensions,obj.Status,obj['Lessons Learned'],obj['Made For'],obj.Recipient,obj['Photo Link'],obj['Tools Used'],obj['Tool Notes'],obj.Notes,obj.Tags,obj.Priority,obj['Source URL']]) } : null;
+    const tData = all.Tools     ? { rows: all.Tools.map(obj =>     [obj.ID,obj.Timestamp,obj.Category,obj.Name,obj.Brand,obj.Model,obj['Serial Number'],obj['Purchase Date'],obj.Price,obj.Location,obj.Manual,obj.Condition,obj.Notes,obj['Drive Link'],obj['Has Maint Log']]) } : null;
+    const iData = all.Inventory ? { rows: all.Inventory.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Category,obj.Location,obj.Notes]) } : null;
+    const rData = all.Resources ? { rows: all.Resources.map(obj => [obj.ID,obj.Timestamp,obj.Title,obj.Type,obj.URL,obj.Notes,obj['Idea Note'],obj['Project ID'],obj['Tool ID']]) } : null;
+    const mData = all.Maintenance?{ rows: all.Maintenance.map(obj=>[obj.ID,obj['Tool ID'],obj['Tool Name'],obj.Date,obj.Note]) } : null;
 
     if (pData?.rows?.length) {
       // Build a map of existing local projects to preserve any local-only data
@@ -1080,7 +1082,18 @@ function showStatus(msg, type='', ms=2800) {
   b.className = 'status-bar show'+(type==='err'?' err':type==='ok'?' ok':'');
   setTimeout(()=>b.className='status-bar', ms);
 }
-function toSheet(p) { fetch(SCRIPT_URL+'?'+new URLSearchParams(p).toString(),{method:'GET',mode:'no-cors'}).catch(()=>{}); }
+async function toSheet(p) {
+  try {
+    const url = SCRIPT_URL + '?' + new URLSearchParams(p).toString();
+    const res = await fetch(url, { method:'GET', mode:'cors', cache:'no-store' });
+    const data = await res.json();
+    if (data.error) console.warn('Sheet error:', data.error);
+    return data;
+  } catch(e) {
+    console.warn('toSheet failed:', e);
+    return null;
+  }
+}
 function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
 function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
 
