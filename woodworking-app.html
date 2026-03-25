@@ -451,6 +451,10 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="ssub-tools">
+    <div id="tools-maint-alert" style="display:none;background:#FDE8E8;border:1px solid #F5B7B1;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px;font-weight:600;color:#922B21;align-items:center;gap:7px;cursor:pointer;" onclick="filterMaintDueTools()">
+      <span style="font-size:15px;">🔧</span><span id="tools-maint-alert-msg"></span>
+      <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
+    </div>
     <div id="tools-loc-alert" style="display:none;background:#FFF3CD;border:1px solid #FFD966;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:600;color:#7A5700;align-items:center;gap:7px;cursor:pointer;" onclick="filterMissingLocTools()">
       <span style="font-size:15px;">📍</span><span id="tools-loc-alert-msg"></span>
       <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
@@ -620,8 +624,20 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         </div>
         <div id="t-maint-sec" class="maint-section" style="display:none;">
           <div class="form-row"><label>Initial Maintenance Note</label><textarea id="t-maint-note" placeholder="e.g. Replaced blade, cleaned table, lubricated fence..."></textarea></div>
-          <button class="btn btn-secondary btn-sm" id="maint-tip-btn" onclick="getMaintTip()">🤖 Get AI Maintenance Schedule</button>
+        </div>
+        <div class="toggle-row" style="margin-top:4px;">
+          <input type="checkbox" id="t-sched-toggle" onchange="toggleSchedSec()">
+          <label for="t-sched-toggle">🗓 Track Maintenance Schedule (AI-powered)</label>
+        </div>
+        <div id="t-sched-sec" style="display:none;background:var(--warm);border:1px solid var(--tan);border-radius:10px;padding:12px;margin-top:4px;">
+          <button class="btn btn-secondary btn-sm" id="maint-tip-btn" onclick="getMaintTip()" style="margin-bottom:10px;">🤖 Get AI Maintenance Schedule</button>
           <div id="maint-tip-result"></div>
+          <div id="t-sched-saved" style="display:none;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:5px;">Saved Schedule</div>
+            <div id="t-sched-text" style="font-size:12px;color:var(--charcoal);line-height:1.6;"></div>
+            <div id="t-sched-interval" style="margin-top:6px;font-size:12px;font-weight:600;color:var(--accent);"></div>
+          </div>
+          <input type="hidden" id="t-sched-json">
         </div>
         <div style="height:8px;"></div>
         <button class="btn btn-primary btn-full" onclick="saveTool()">💾 Save Tool</button>
@@ -976,7 +992,7 @@ async function syncFromSheet() {
 
     // Map the sync response (keyed by sheet name) to the format the rest of the function expects
     const pData = all.Projects ? { rows: all.Projects.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Description,obj['Wood Species'],obj.Dimensions,obj.Status,obj['Lessons Learned'],obj['Made For'],obj.Recipient,obj['Photo Link'],obj['Tools Used'],obj['Tool Notes'],obj.Notes,obj.Tags,obj.Priority,obj['Source URL']]) } : null;
-    const tData = all.Tools     ? { rows: all.Tools.map(obj =>     [obj.ID,obj.Timestamp,obj.Category,obj.Name,obj.Brand,obj.Model,obj['Serial Number'],obj['Purchase Date'],obj.Price,obj.Location,obj.Manual,obj.Condition,obj.Notes,obj['Drive Link'],obj['Has Maint Log']]) } : null;
+    const tData = all.Tools     ? { rows: all.Tools.map(obj =>     [obj.ID,obj.Timestamp,obj.Category,obj.Name,obj.Brand,obj.Model,obj['Serial Number'],obj['Purchase Date'],obj.Price,obj.Location,obj.Manual,obj.Condition,obj.Notes,obj['Drive Link'],obj['Has Maint Log'],obj['Maint Schedule']||'']) } : null;
     const iData = all.Inventory ? { rows: all.Inventory.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Category,obj.Location,obj.Notes]) } : null;
     const rData = all.Resources ? { rows: all.Resources.map(obj => [obj.ID,obj.Timestamp,obj.Title,obj.Type,obj.URL,obj.Notes,obj['Idea Note'],obj['Project ID'],obj['Tool ID']]) } : null;
     const mData = all.Maintenance?{ rows: all.Maintenance.map(obj=>[obj.ID,obj['Tool ID'],obj['Tool Name'],obj.Date,obj.Note]) } : null;
@@ -1021,6 +1037,8 @@ async function syncFromSheet() {
           serial:r[6]||'', date:r[7]||'', price:r[8]||'', location:r[9]||'',
           manual:r[10]||'', condition:r[11]||'Good', notes:r[12]||'',
           driveLink:r[13]||'', hasMaint:r[14]==='Yes',
+          maintSchedule:r[15]||'',
+          maintIntervalDays: r[15] ? (()=>{ try{ return JSON.parse(r[15]).interval_days||0; }catch(e){ return 0; } })() : 0,
           maintLog: localToolMap[id]?.maintLog || []
         };
       }).filter(t => { if(seen.has(t.id)) return false; seen.add(t.id); return true; });
@@ -1302,6 +1320,22 @@ function editTool(id) {
   if(baseVal==='Third Shop Bench - Drawer')    $('t-third').value    = locBase.replace('Third Shop Bench – ','');
   if(baseVal==='Craftsman Shop Bench - Drawer') $('t-craftsman').value = locBase.replace('Craftsman Shop Bench – ','');
   if(t.driveLink) onDriveLink('t');
+  // Load maintenance schedule if present
+  const hasSched=!!(t.maintSchedule);
+  $('t-sched-toggle').checked=hasSched;
+  $('t-sched-sec').style.display=hasSched?'block':'none';
+  $('t-sched-json').value=t.maintSchedule||'';
+  $('maint-tip-result').innerHTML='';
+  if(hasSched&&t.maintSchedule){
+    try{
+      const p=JSON.parse(t.maintSchedule);
+      $('t-sched-saved').style.display='block';
+      $('t-sched-text').innerHTML=(p.schedule_text||'').replace(/\n/g,'<br>');
+      $('t-sched-interval').textContent='📅 Service check every '+p.interval_days+' days';
+    }catch(e){ $('t-sched-saved').style.display='none'; }
+  } else {
+    $('t-sched-saved').style.display='none';
+  }
   // Change save button to Update
   const saveBtn = document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Update Tool'; saveBtn.onclick = ()=>updateTool(id); }
@@ -1312,14 +1346,17 @@ function editTool(id) {
 function updateTool(id) {
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
   const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
+  const hasSched=$('t-sched-toggle').checked, schedJson=gv('t-sched-json')||'';
   const idx=tools.findIndex(x=>x.id===id); if(idx===-1) return;
   const existing=tools[idx];
-  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link')};
+  let maintSchedule=existing.maintSchedule||'', maintIntervalDays=existing.maintIntervalDays||0;
+  if(hasSched&&schedJson){ try{ const p=JSON.parse(schedJson); maintSchedule=schedJson; maintIntervalDays=p.interval_days||0; }catch(e){} }
+  if(!hasSched){ maintSchedule=''; maintIntervalDays=0; }
+  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),maintSchedule,maintIntervalDays};
   if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
   saveLocal();
-  toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No'});
+  toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No',maintSchedule:tools[idx].maintSchedule});
   showStatus('✅ Tool updated!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
-  // Reset save button
   const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
 }
@@ -1937,21 +1974,58 @@ async function scanToolPhoto(ev){
 
 async function getMaintTip(){
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name first','err');return;}
-  const btn=$('maint-tip-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Getting tips...';
+  const btn=$('maint-tip-btn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Getting schedule...';
   try {
-    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,messages:[{role:"user",content:`Practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' ('+gv('t-model')+')':''} (${gv('t-category')}). Intermediate woodworker. Bullet points: cleaning freq, lubrication product & interval, blade/belt/part replacement, safety checks, model tips. Concise.`}]})});
-    const d=await res.json(), tip=d.content?.[0]?.text||'No tips available.';
-    $('maint-tip-result').innerHTML=`<div class="maint-tip-box"><div class="tip-hdr">🤖 AI Maintenance Schedule</div>${tip.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
-  } catch(e){ $('maint-tip-result').innerHTML='<div style="color:var(--red);font-size:13px;">⚠️ Could not get tips.</div>'; }
+    const prompt=`You are a woodworking tool maintenance expert. Generate a practical maintenance schedule for a ${gv('t-brand')?gv('t-brand')+' ':''}${name}${gv('t-model')?' ('+gv('t-model')+')':''} (${gv('t-category')}) used by an intermediate woodworker.
+
+Return ONLY valid JSON in this exact format, no markdown, no extra text:
+{"interval_days":90,"schedule_text":"• Clean sawdust from motor vents after each use\\n• Wax table surface monthly\\n• Check blade alignment every 3 months\\n• Replace blade when dull or damaged\\n• Lubricate trunnions with dry lubricant every 6 months"}
+
+interval_days should be the recommended number of days between formal service checks (typically 30–180).
+schedule_text should be concise bullet points using \\n between items. Be specific to this tool model if known.`;
+
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:600,messages:[{role:"user",content:prompt}]})});
+    const d=await res.json();
+    const raw=(d.content?.[0]?.text||'').trim();
+    let parsed;
+    try { parsed=JSON.parse(raw); } catch(e){ throw new Error('AI returned unexpected format'); }
+    if(!parsed.interval_days||!parsed.schedule_text) throw new Error('Incomplete AI response');
+
+    // Display preview with Use This Schedule button
+    const html=`<div class="maint-tip-box">
+      <div class="tip-hdr" style="margin-bottom:7px;">🤖 Suggested Schedule</div>
+      <div style="font-size:12px;line-height:1.7;">${parsed.schedule_text.replace(/\n/g,'<br>')}</div>
+      <div style="margin-top:8px;font-size:12px;font-weight:600;color:var(--accent);">📅 Recommended service check every <strong>${parsed.interval_days} days</strong></div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="useSchedResult(${JSON.stringify(parsed).replace(/"/g,'&quot;')})">✅ Use This Schedule</button>
+    </div>`;
+    $('maint-tip-result').innerHTML=html;
+  } catch(e){
+    $('maint-tip-result').innerHTML='<div style="color:var(--red);font-size:13px;">⚠️ Could not get schedule. Try again.</div>';
+  }
   btn.disabled=false; btn.innerHTML='🤖 Get AI Maintenance Schedule';
+}
+
+function useSchedResult(parsed){
+  $('t-sched-json').value=JSON.stringify(parsed);
+  $('maint-tip-result').innerHTML='<div style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:6px;">✅ Schedule locked in — save the tool to store it.</div>';
+  $('t-sched-saved').style.display='block';
+  $('t-sched-text').innerHTML=parsed.schedule_text.replace(/\n/g,'<br>');
+  $('t-sched-interval').textContent='📅 Service check every '+parsed.interval_days+' days';
+}
+
+function toggleSchedSec(){
+  $('t-sched-sec').style.display=$('t-sched-toggle').checked?'block':'none';
 }
 
 function saveTool(){
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
   const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
-  const tool={id:genId(),ts:Date.now(),cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),hasMaint,maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[]};
+  const hasSched=$('t-sched-toggle').checked, schedJson=gv('t-sched-json')||'';
+  let maintSchedule='', maintIntervalDays=0;
+  if(hasSched&&schedJson){ try{ const p=JSON.parse(schedJson); maintSchedule=schedJson; maintIntervalDays=p.interval_days||0; }catch(e){} }
+  const tool={id:genId(),ts:Date.now(),cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),hasMaint,maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[],maintSchedule,maintIntervalDays};
   tools.push(tool); saveLocal();
-  toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No'});
+  toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No',maintSchedule:tool.maintSchedule});
   if(maintNote) toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:tool.id,toolName:tool.name,date:new Date().toISOString().split('T')[0],note:maintNote});
   showStatus('✅ Tool saved!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
 }
@@ -1960,6 +2034,9 @@ function clearToolForm(){
   $('t-category').value='Power Tools'; $('t-condition').value='Excellent'; $('t-location').value='';
   $('t-third-row').style.display=$('t-craftsman-row').style.display='none';
   $('t-maint-toggle').checked=false; $('t-maint-sec').style.display='none';
+  $('t-sched-toggle').checked=false; $('t-sched-sec').style.display='none';
+  $('t-sched-json').value=''; $('t-sched-saved').style.display='none';
+  $('t-sched-text').innerHTML=''; $('t-sched-interval').textContent='';
   $('t-photo-wrap').style.display='none'; $('t-drive-prev').style.display='none';
   $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML=''; toolFile=null;
   // Always reset the save button to its original state
@@ -1969,32 +2046,81 @@ function clearToolForm(){
   applyLocLock(); // re-apply location lock for next item
 }
 
+// ════════════════════════════════════════════════════════════════
+// MAINTENANCE DUE HELPERS
+// ════════════════════════════════════════════════════════════════
+function daysSinceDate(dateStr){
+  if(!dateStr) return null;
+  const d=new Date(dateStr); if(isNaN(d)) return null;
+  return Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
+}
+
+function maintDueStatus(tool){
+  // Returns: null (no schedule), 'ok', 'soon' (within 14 days), 'due'
+  if(!tool.maintSchedule||!tool.maintIntervalDays) return null;
+  const log=tool.maintLog||[];
+  const lastEntry=log.length?log[log.length-1]:null;
+  const lastDate=lastEntry?.date||null;
+  const elapsed=daysSinceDate(lastDate);
+  if(elapsed===null) return 'due'; // has schedule but never serviced
+  const remaining=tool.maintIntervalDays-elapsed;
+  if(remaining<=0) return 'due';
+  if(remaining<=14) return 'soon';
+  return 'ok';
+}
+
+function markMaintDone(toolId){
+  const t=tools.find(x=>x.id===toolId); if(!t) return;
+  const today=new Date().toISOString().split('T')[0];
+  const note='✅ Scheduled maintenance completed';
+  if(!t.maintLog) t.maintLog=[];
+  t.maintLog.push({date:today,note}); t.hasMaint=true;
+  saveLocal();
+  toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:t.id,toolName:t.name,date:today,note});
+  showStatus('✅ Maintenance logged — clock reset!','ok');
+  renderToolList();
+}
+
+
 function renderToolList(){
   const cont=$('tool-list'), cntEl=$('tool-count');
   const srchEl=document.getElementById('srch-tools');
   const q=(srchEl?.value||'').toLowerCase();
   const missingOnly=srchEl?.dataset?.missingLocFilter==='1';
+  const maintOnly=srchEl?.dataset?.maintDueFilter==='1';
   let list=tools.filter(t=>!q||(t.name||'').toLowerCase().includes(q)||(t.brand||'').toLowerCase().includes(q)||(t.location||'').toLowerCase().includes(q)||(t.model||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(t=>!(t.location||'').trim());
-  // Apply category filter
+  if(maintOnly) list=list.filter(t=>{ const s=maintDueStatus(t); return s==='due'||s==='soon'; });
   if(activeCatFilters.size>0) list=list.filter(t=>activeCatFilters.has(t.cat));
-  if(!list.length){ cont.innerHTML=tools.length===0?'<div class="empty-state"><div class="ei">🔧</div><p>No tools yet.<br>Tap ➕ Add New → Add Tool</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All tools have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No tools match your search.</p></div>'; cntEl.textContent=''; updateLocAlerts(); return; }
-  cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+tools.length+' tools';
   updateLocAlerts();
+  if(!list.length){
+    const empty=tools.length===0?'<div class="empty-state"><div class="ei">🔧</div><p>No tools yet.<br>Tap ➕ Add New → Add Tool</p></div>':
+      missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All tools have a location — great!</p></div>':
+      maintOnly?'<div class="empty-state"><div class="ei">🔧</div><p>No tools due for service — great!</p></div>':
+      '<div class="empty-state"><div class="ei">🔍</div><p>No tools match your search.</p></div>';
+    cont.innerHTML=empty; cntEl.textContent=''; return;
+  }
+  const suffix=missingOnly?' unlocated':maintOnly?' due/soon':'';
+  cntEl.textContent=(missingOnly||maintOnly?list.length+suffix+' of ':'')+tools.length+' tools';
   const CB={Excellent:'badge-excellent',Good:'badge-good',Fair:'badge-fair','Needs Service':'badge-service'};
   const CI={'Power Tools':'⚡','Handheld Power Tools':'🔌','Hand Tools':'🔨','Jigs':'🎯','Measuring & Layout':'📐',Finishing:'🖌️','Clamps & Workholding':'🗜️',Safety:'🦺',Other:'🔩'};
   const cats={}; list.forEach(t=>{ if(!cats[t.cat]) cats[t.cat]=[]; cats[t.cat].push(t); });
   if(toolViewCompact){
-    cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(t=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+    cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(t=>{
+      const ds=maintDueStatus(t);
+      const duePill=ds==='due'?'<span style="background:#FDE8E8;border:1px solid #F5B7B1;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#922B21;">🔧 Due</span>':
+                    ds==='soon'?'<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#7A5700;">🔧 Soon</span>':'';
+      const locPill=!(t.location||'').trim()?'<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#7A5700;">📍?</span>':'';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:16px;flex-shrink:0;">${CI[t.cat]||'🔧'}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.name}</div>
-          <div style="font-size:11px;color:var(--muted);">${t.brand?t.brand+' · ':''}${t.location||''}${!t.location?'<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#7A5700;">📍?</span>':''}</div>
+          <div style="font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center;flex-wrap:wrap;">${t.brand?t.brand+' · ':''}${t.location||''}${locPill}${duePill}</div>
         </div>
         <span class="badge ${CB[t.condition]||''}" style="flex-shrink:0;font-size:10px;">${t.condition}</span>
         <button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:11px;flex-shrink:0;" onclick="editTool('${t.id}')">✏️</button>
-      </div>`).join('')+'</div>';
+      </div>`;
+    }).join('')+'</div>';
     return;
   }
   cont.innerHTML=Object.entries(cats).map(([cat,ts])=>`
@@ -2002,6 +2128,21 @@ function renderToolList(){
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
       ${ts.map(t=>{
         const thumb=driveThumb(t.driveLink);
+        const ds=maintDueStatus(t);
+        const noLoc=!(t.location||'').trim();
+        const dueBadge=ds==='due'?`<span style="background:#FDE8E8;border:1px solid #F5B7B1;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#922B21;">🔧 Service Due</span>`:
+                        ds==='soon'?`<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#7A5700;">🔧 Due Soon</span>`:'';
+        const locBadge=noLoc?`<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;color:#7A5700;cursor:pointer;" onclick="event.stopPropagation();editTool('${t.id}')">📍? No location</span>`:'';
+        const lastServiced=(()=>{
+          if(!t.maintSchedule||!t.maintIntervalDays) return '';
+          const log=t.maintLog||[];
+          const last=log.length?log[log.length-1]:null;
+          if(!last) return '<span style="font-size:11px;color:#922B21;">Never serviced</span>';
+          const elapsed=daysSinceDate(last.date);
+          const remaining=t.maintIntervalDays-elapsed;
+          if(remaining<=0) return `<span style="font-size:11px;color:#922B21;">Overdue by ${Math.abs(remaining)} days</span>`;
+          return `<span style="font-size:11px;color:var(--muted);">Next service in ${remaining} days</span>`;
+        })();
         return `<div class="item-row">
           <div class="item-icon">${CI[t.cat]||'🔧'}</div>
           <div class="item-info">
@@ -2013,15 +2154,20 @@ function renderToolList(){
                 <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${t.id}','tool')">🗑️</button>
               </div>
             </div>
-            <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}${!t.location?'<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;color:#7A5700;" onclick="event.stopPropagation();editTool(\''+t.id+'\')">📍? No location</span>':''}</div>
-            <div style="margin-top:3px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+            <div class="item-meta">${t.brand?t.brand+' · ':''}${t.model||''}${t.location?' · 📍 '+t.location:''}${locBadge}</div>
+            <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
               <span class="badge ${CB[t.condition]||''}">${t.condition}</span>
               ${t.hasMaint?'<span style="font-size:11px;color:var(--accent);">📋 Maint</span>':''}
+              ${dueBadge}
+              ${lastServiced}
+              ${ds==='due'?`<button class="btn btn-sm" style="padding:2px 9px;font-size:11px;background:#FDE8E8;color:#922B21;border:1px solid #F5B7B1;font-weight:700;" onclick="event.stopPropagation();markMaintDone('${t.id}')">✅ Mark Done</button>`:''}
+              ${ds==='soon'?`<button class="btn btn-sm" style="padding:2px 9px;font-size:11px;background:#FFF3CD;color:#7A5700;border:1px solid #FFD966;font-weight:700;" onclick="event.stopPropagation();markMaintDone('${t.id}')">✅ Mark Done</button>`:''}
             </div>
             ${thumb?`<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''}
             ${t.hasMaint?`<div style="margin-top:6px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
             ${t.manual?`<a href="${t.manual}" target="_blank" style="font-size:11px;color:var(--accent);margin-top:4px;display:inline-block;">📄 Manual</a>`:''}
-            ${(()=>{ const linked=resources.filter(r=>r.toolId===t.id); return linked.length?`<div style="margin-top:7px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#E8F5E3;color:#3A6B2A;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}          </div>
+            ${(()=>{ const linked=resources.filter(r=>r.toolId===t.id); return linked.length?`<div style="margin-top:7px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#E8F5E3;color:#3A6B2A;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}
+          </div>
         </div>`;
       }).join('')}
     </div>`).join('');
@@ -2151,36 +2297,40 @@ function renderInvList(){
   const catIconI={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
   const srchEl=document.getElementById('srch-inv');
   const missingOnly=srchEl?.dataset?.missingLocFilter==='1';
+  const q=(srchEl?.value||'').toLowerCase();
+  updateLocAlerts();
   if(invViewCompact){
-    const q=(srchEl?.value||'').toLowerCase();
     let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q));
     if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
     cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
-    updateLocAlerts();
     if(!list.length){ cont.innerHTML=missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match.</p></div>'; return; }
-    cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(i=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+    cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(i=>{
+      const noLoc=!(i.location||'').trim();
+      const locPill=noLoc?'<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#7A5700;">📍?</span>':'';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:16px;flex-shrink:0;">${catIconI[i.category]||'📦'}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${i.name}</div>
-          <div style="font-size:11px;color:var(--muted);">${i.location||''}${!i.location?'<span style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;color:#7A5700;">📍?</span>':i.category}</div>
+          <div style="font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center;">${i.location||i.category}${locPill}</div>
         </div>
         <button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:11px;flex-shrink:0;" onclick="editInvItem('${i.id}')">✏️</button>
-      </div>`).join('')+'</div>';
+      </div>`;
+    }).join('')+'</div>';
     return;
   }
-  const q=(srchEl?.value||'').toLowerCase();
   let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
-  if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; updateLocAlerts(); return; }
+  if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
-  updateLocAlerts();
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
   const cats={}; list.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
   cont.innerHTML=Object.entries(cats).map(([cat,items])=>`
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${catIcon[cat]||'📦'} ${cat}</div>
-      ${items.map(i=>`<div class="item-row">
+      ${items.map(i=>{
+        const noLoc=!(i.location||'').trim();
+        const locBadge=noLoc?`<span style="display:inline-flex;align-items:center;gap:2px;background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;color:#7A5700;cursor:pointer;" onclick="event.stopPropagation();editInvItem('${i.id}')">📍? No location</span>`:'';
+        return `<div class="item-row">
         <div class="item-icon">${catIcon[i.category]||'📦'}</div>
         <div class="item-info">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
@@ -2191,60 +2341,56 @@ function renderInvList(){
               <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${i.id}','inventory')">🗑️</button>
             </div>
           </div>
-          <div class="item-meta">${i.location?'📍 '+i.location:'<span style="display:inline-flex;align-items:center;gap:2px;background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;color:#7A5700;" onclick="event.stopPropagation();editInvItem(\''+i.id+'\')">📍? No location</span>'}${i.notes?'<br>'+i.notes:''}</div>
+          <div class="item-meta">${i.location?'📍 '+i.location:locBadge}${i.notes?'<br>'+i.notes:''}</div>
         </div>
-      </div>`).join('')}
+      </div>`;}).join('')}
     </div>`).join('');
 }
 
 // ════════════════════════════════════════════════════════════════
-// MISSING LOCATION ALERT BARS
+// ALERT BARS — location missing + maintenance due
 // ════════════════════════════════════════════════════════════════
 function updateLocAlerts(){
-  // Tools
-  const missingTools = tools.filter(t=>!(t.location||'').trim());
+  // Tools missing location
+  const missingTools=tools.filter(t=>!(t.location||'').trim());
   const ta=$('tools-loc-alert'), tm=$('tools-loc-alert-msg');
-  if(ta && tm){
-    if(missingTools.length>0){
-      ta.style.display='flex';
-      tm.textContent=missingTools.length+' tool'+(missingTools.length>1?'s are':' is')+' missing a location';
-    } else {
-      ta.style.display='none';
-    }
-  }
-  // Inventory
-  const missingInv = inventory.filter(i=>!(i.location||'').trim());
+  if(ta&&tm){ if(missingTools.length){ ta.style.display='flex'; tm.textContent=missingTools.length+' tool'+(missingTools.length>1?'s are':' is')+' missing a location'; } else ta.style.display='none'; }
+  // Inventory missing location
+  const missingInv=inventory.filter(i=>!(i.location||'').trim());
   const ia=$('inv-loc-alert'), im=$('inv-loc-alert-msg');
-  if(ia && im){
-    if(missingInv.length>0){
-      ia.style.display='flex';
-      im.textContent=missingInv.length+' item'+(missingInv.length>1?'s are':' is')+' missing a location';
-    } else {
-      ia.style.display='none';
-    }
+  if(ia&&im){ if(missingInv.length){ ia.style.display='flex'; im.textContent=missingInv.length+' item'+(missingInv.length>1?'s are':' is')+' missing a location'; } else ia.style.display='none'; }
+  // Maintenance due
+  const dueTools=tools.filter(t=>{ const s=maintDueStatus(t); return s==='due'||s==='soon'; });
+  const ma=$('tools-maint-alert'), mm=$('tools-maint-alert-msg');
+  if(ma&&mm){
+    if(dueTools.length){
+      const dueCount=tools.filter(t=>maintDueStatus(t)==='due').length;
+      const soonCount=tools.filter(t=>maintDueStatus(t)==='soon').length;
+      let msg=''; if(dueCount) msg+=dueCount+' tool'+(dueCount>1?'s':'')+(dueCount>1?' are':' is')+' overdue for service'; if(soonCount) msg+=(dueCount?' · ':'')+soonCount+' due soon';
+      ma.style.display='flex'; mm.textContent=msg;
+    } else ma.style.display='none';
   }
 }
 
 function filterMissingLocTools(){
-  const srch=$('srch-tools'); if(!srch) return;
-  // If already filtering missing, clear; otherwise set a special flag via data attr
-  if(srch.dataset.missingLocFilter==='1'){
-    srch.value=''; srch.dataset.missingLocFilter=''; renderToolList();
-  } else {
-    srch.value=''; srch.dataset.missingLocFilter='1'; renderToolList();
-  }
+  const s=$('srch-tools'); if(!s) return;
+  if(s.dataset.missingLocFilter==='1'){ s.dataset.missingLocFilter=''; } else { s.dataset.missingLocFilter='1'; s.dataset.maintDueFilter=''; }
+  renderToolList();
 }
-
 function filterMissingLocInv(){
-  const srch=$('srch-inv'); if(!srch) return;
-  if(srch.dataset.missingLocFilter==='1'){
-    srch.value=''; srch.dataset.missingLocFilter=''; renderInvList();
-  } else {
-    srch.value=''; srch.dataset.missingLocFilter='1'; renderInvList();
-  }
+  const s=$('srch-inv'); if(!s) return;
+  s.dataset.missingLocFilter=s.dataset.missingLocFilter==='1'?'':'1';
+  renderInvList();
+}
+function filterMaintDueTools(){
+  const s=$('srch-tools'); if(!s) return;
+  if(s.dataset.maintDueFilter==='1'){ s.dataset.maintDueFilter=''; } else { s.dataset.maintDueFilter='1'; s.dataset.missingLocFilter=''; }
+  renderToolList();
 }
 
-
+// ════════════════════════════════════════════════════════════════
+// BULK SCAN
+// ════════════════════════════════════════════════════════════════
 async function bulkScan(ev){
   const file=ev.target.files[0]; if(!file) return;
   const loc=fullLoc('b');
