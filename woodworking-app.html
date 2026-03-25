@@ -334,7 +334,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div id="plist-ideas"></div>
   </div>
 
-  <div id="psub-progress" style="display:none;">
+  <div id="psub-progress" style="display:block;">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
       <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-progress" placeholder="Search active projects..." oninput="renderPList('progress')"></div>
       <button id="proj-view-btn-progress" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('progress')">☰ Compact</button>
@@ -386,6 +386,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         </select>
       </div>
       <div class="form-row"><label>Source URL</label><input type="url" id="p-source-url" placeholder="https:// where you saw this idea..."></div>
+      <div class="form-row" id="p-next-steps-row" style="display:none;"><label>Next Steps</label><textarea id="p-next-steps" placeholder="What's the next thing you need to do on this project?"></textarea></div>
       <div class="form-row" id="p-lessons-row" style="display:none;"><label>Lessons Learned</label><textarea id="p-lessons" placeholder="What worked? What would you do differently?"></textarea></div>
       <div class="form-row"><label>Made For</label>
         <select id="p-for" onchange="onForChg()">
@@ -456,7 +457,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <button id="tool-view-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="toggleToolView()">☰ Compact</button>
     </div>
     <div class="filter-chips" id="tool-cat-filters" style="margin-bottom:6px;">
-      <span class="filter-chip" data-cat="Power Tools"          onclick="toggleCatFilter(this)">⚡ Stationary</span>
+      <span class="filter-chip" data-cat="Power Tools"          onclick="toggleCatFilter(this)">⚡ Power Tools</span>
       <span class="filter-chip" data-cat="Handheld Power Tools" onclick="toggleCatFilter(this)">🔌 Handheld</span>
       <span class="filter-chip" data-cat="Hand Tools"           onclick="toggleCatFilter(this)">🔨 Hand</span>
       <span class="filter-chip" data-cat="Jigs"                 onclick="toggleCatFilter(this)">🎯 Jigs</span>
@@ -635,7 +636,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <input type="file" id="i-scan-file" accept="image/*" style="display:none" onchange="scanInvPhoto(event)">
           <div style="text-align:center;font-size:12px;color:var(--muted);margin:6px 0;">— or —</div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <input type="url" id="i-scan-url" placeholder="Paste Amazon or product URL..." style="flex:1;font-size:13px;">
+            <input type="url" id="i-scan-url" placeholder="Paste Amazon or product URL..." style="flex:1;font-size:13px;" oninput="autoScanInvUrl(this)">
             <button class="btn btn-secondary btn-sm" onclick="scanInvUrl()" style="white-space:nowrap;">🔍 Scan URL</button>
           </div>
           <div id="i-scan-status" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:18px;"></div>
@@ -991,7 +992,7 @@ async function syncFromSheet() {
           status, lessons:r[7]||'', madeFor:r[8]||'Self',
           recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
           toolNotes:r[12]||'', tags:r[13]?r[13].split(',').map(t=>t.trim()).filter(Boolean):[],
-          notes:r[14]||'', priority:r[15]||'', sourceUrl:r[16]||''
+          notes:r[14]||'', priority:r[15]||'', sourceUrl:r[16]||'', nextSteps:r[17]||''
         };
       });
       // Deduplicate by ID — keep only one entry per ID
@@ -1233,6 +1234,32 @@ function rerenderFor(type) {
   if(type==='resource')  renderResList();
 }
 
+// ── MOVE TOOL → INVENTORY ─────────────────────────────────────────
+function moveToInventory(toolId) {
+  const t = tools.find(x=>x.id===toolId); if(!t) return;
+  if(!confirm(`Move "${t.name}" from Tools to Inventory?\n\nTool-specific fields (brand, model, serial, maintenance) will be dropped.`)) return;
+  const item = { id:genId(), ts:Date.now(), name:t.name, category:'Miscellaneous', location:t.location||'', notes:t.notes||'' };
+  inventory.push(item);
+  tools = tools.filter(x=>x.id!==toolId);
+  saveLocal();
+  toSheet({action:'delete', sheet:'Tools', id:toolId});
+  toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  showStatus('📦 Moved to Inventory','ok'); renderToolList(); renderInvList();
+}
+
+// ── MOVE INVENTORY → TOOLS ────────────────────────────────────────
+function moveToTools(invId) {
+  const i = inventory.find(x=>x.id===invId); if(!i) return;
+  if(!confirm(`Move "${i.name}" from Inventory to Tools?\n\nYou can fill in tool-specific details by editing it afterward.`)) return;
+  const tool = { id:genId(), ts:Date.now(), name:i.name, cat:'Other', brand:'', model:'', serial:'', date:'', price:'', location:i.location||'', manual:'', condition:'Good', notes:i.notes||'', driveLink:'', hasMaint:false, maintLog:[] };
+  tools.push(tool);
+  inventory = inventory.filter(x=>x.id!==invId);
+  saveLocal();
+  toSheet({action:'delete', sheet:'Inventory', id:invId});
+  toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:'',model:'',serial:'',purchaseDate:'',price:'',location:tool.location,manual:'',condition:tool.condition,notes:tool.notes,driveLink:'',hasMaintLog:'No'});
+  showStatus('🔧 Moved to Tools','ok'); renderToolList(); renderInvList();
+}
+
 // ── EDIT DISPATCHER ───────────────────────────────────────────────
 function editItem(id, type) {
   if(type==='project')   editProject(id);
@@ -1440,7 +1467,11 @@ function applyLocLock() {
 // ════════════════════════════════════════════════════════════════
 // PROJECT FORM
 // ════════════════════════════════════════════════════════════════
-function onStatusChg() { $('p-lessons-row').style.display = gv('p-status')==='Completed'?'block':'none'; }
+function onStatusChg() { 
+  const s=gv('p-status');
+  $('p-lessons-row').style.display = s==='Completed'?'block':'none';
+  if($('p-next-steps-row')) $('p-next-steps-row').style.display = s==='In Progress'?'block':'none';
+}
 function onForChg()    { $('p-recip-row').style.display   = gv('p-for')==='Other'?'block':'none'; }
 
 // ════════════════════════════════════════════════════════════════
@@ -1609,6 +1640,7 @@ function renderPList(type){
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
           <div style="font-size:11px;color:var(--muted);">${p.wood?'🌳 '+p.wood+' · ':''}${p.status}</div>
+          ${(type==='progress'&&p.nextSteps)?`<div style="font-size:11px;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ${p.nextSteps}</div>`:''}
         </div>
         ${p.priority?`<span style="font-size:10px;padding:2px 6px;border-radius:10px;background:#f5f0eb;color:var(--charcoal);flex-shrink:0;">${PRIORITY_BADGE[p.priority]}</span>`:''}
         <button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:11px;flex-shrink:0;" onclick="editProject('${p.id}')">✏️</button>
@@ -1641,6 +1673,7 @@ function renderPList(type){
         ${menuBtn(p.id,'project')}
       </div></div>
       ${p.desc?`<div style="font-size:13px;color:var(--charcoal);margin-top:4px;">${p.desc}</div>`:''}
+      ${(type==='progress'&&p.nextSteps)?`<div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;padding:6px 10px;background:rgba(196,119,59,0.08);border-left:3px solid var(--accent);border-radius:4px;">▶ Next: ${p.nextSteps}</div>`:''}
       ${p.sourceUrl?`<a href="${p.sourceUrl}" target="_blank" style="font-size:12px;color:var(--accent);display:inline-block;margin-top:4px;">🔗 Source ↗</a>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
       ${thumbs.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${thumbs.map(t=>`<img src="${t}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`).join('')}</div>`:''}
@@ -1664,8 +1697,9 @@ function moveProject(id, newStatus){
 function applyMove(id,status,lessons){
   const p=projects.find(x=>x.id===id); if(!p) return;
   p.status=status; if(lessons) p.lessons=lessons;
+  if(status==='Completed') p.nextSteps=''; // clear next steps when complete
   saveLocal();
-  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).filter(Boolean).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).filter(Boolean).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||'',nextSteps:p.nextSteps||''});
   showStatus(`✅ Moved to ${status}`,'ok'); renderAllPLists();
   const dest = status==='In Progress'?'progress':status==='Completed'?'completed':status==='Planned'?'planned':'ideas';
   setTimeout(()=>showPTab(dest),350);
@@ -1679,6 +1713,8 @@ function editProject(id){
   $('p-for').value=p.madeFor||'Self'; $('p-recipient').value=p.recipient||'';
   if($('p-priority')) $('p-priority').value=p.priority||'';
   if($('p-source-url')) $('p-source-url').value=p.sourceUrl||'';
+  if($('p-next-steps')) $('p-next-steps').value=p.nextSteps||'';
+  if($('p-next-steps-row')) $('p-next-steps-row').style.display=p.status==='In Progress'?'block':'none';
   // Populate drive links
   const dlc=$('p-drive-links-container');
   if(dlc){
@@ -1706,9 +1742,11 @@ function saveProject(){
 }
 function collectProj(){
   const editId=gv('p-edit-id'), toolNames=tools.filter(t=>selToolIds.includes(t.id)).map(t=>t.name).join(', ');
+  const status=gv('p-status');
   return { id:editId||genId(), ts:editId?(projects.find(x=>x.id===editId)?.ts||Date.now()):Date.now(), isEdit:!!editId,
-    name:gv('p-name'),desc:gv('p-desc'),wood:gv('p-wood'),dims:gv('p-dims'),status:gv('p-status'),
+    name:gv('p-name'),desc:gv('p-desc'),wood:gv('p-wood'),dims:gv('p-dims'),status,
     priority:gv('p-priority'), sourceUrl:gv('p-source-url'),
+    nextSteps: status==='Completed' ? '' : (gv('p-next-steps')||''),
     lessons:gv('p-lessons'),madeFor:gv('p-for'),recipient:gv('p-recipient'),
     driveLinks:getProjDriveLinks(),
     driveLink:getProjDriveLinks()[0]||'', // keep first for backward compat
@@ -1729,16 +1767,17 @@ function commitProj(p){
   if(p.isEdit){ const i=projects.findIndex(x=>x.id===p.id); if(i>-1) projects[i]=p; }
   else projects.unshift(p);
   saveLocal();
-  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||''});
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||'',nextSteps:p.nextSteps||''});
   showStatus(p.isEdit?'✅ Project updated!':'✅ Project saved!','ok');
   clearProjForm(); renderAllPLists(); selToolIds=[]; selTags=[];
   setTimeout(()=>showPTab(p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed'),350);
 }
 function clearProjForm(){
-  ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons','p-source-url'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons','p-source-url','p-next-steps'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('p-edit-id').value=''; $('p-status').value='Planned';
   if($('p-priority')) $('p-priority').value=''; $('p-for').value='Self';
   $('p-lessons-row').style.display='none'; $('p-recip-row').style.display='none';
+  if($('p-next-steps-row')) $('p-next-steps-row').style.display='none';
   $('p-drive-previews') && ($('p-drive-previews').innerHTML='');
   // Reset drive links to just one empty field
   const dlc = $('p-drive-links-container');
@@ -1958,6 +1997,7 @@ function renderToolList(){
               <div class="item-name">${t.name}</div>
               <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
                 <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editTool('${t.id}')">✏️ Edit</button>
+                <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToInventory('${t.id}')">📦 →Inv</button>
                 <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${t.id}','tool')">🗑️</button>
               </div>
             </div>
@@ -2036,6 +2076,14 @@ async function scanInvPhoto(ev) {
     stat.innerHTML = '⚠️ Error: ' + e.message;
   }
   ev.target.value = '';
+}
+
+let _invUrlTimer = null;
+function autoScanInvUrl(input) {
+  clearTimeout(_invUrlTimer);
+  const url = input.value.trim();
+  if (!url || !url.startsWith('http')) return;
+  _invUrlTimer = setTimeout(() => scanInvUrl(), 800);
 }
 
 async function scanInvUrl() {
@@ -2121,6 +2169,7 @@ function renderInvList(){
             <div class="item-name">${i.name}</div>
             <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
               <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editInvItem('${i.id}')">✏️ Edit</button>
+              <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToTools('${i.id}')">🔧 →Tools</button>
               <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${i.id}','inventory')">🗑️</button>
             </div>
           </div>
