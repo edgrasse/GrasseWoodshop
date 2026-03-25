@@ -1356,7 +1356,7 @@ function updateTool(id) {
   if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
   saveLocal();
   toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No',maintSchedule:tools[idx].maintSchedule});
-  showStatus('✅ Tool updated!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
+  showStatus('✅ Tool updated!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList();
   const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
 }
@@ -2027,7 +2027,7 @@ function saveTool(){
   tools.push(tool); saveLocal();
   toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No',maintSchedule:tool.maintSchedule});
   if(maintNote) toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:tool.id,toolName:tool.name,date:new Date().toISOString().split('T')[0],note:maintNote});
-  showStatus('✅ Tool saved!','ok'); clearToolForm(); showSTab('tools'); renderToolList();
+  showStatus('✅ Tool saved!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList();
 }
 function clearToolForm(){
   ['t-name','t-brand','t-model','t-serial','t-date','t-price','t-manual','t-notes','t-maint-note','t-drive-link'].forEach(id=>{const e=$(id);if(e)e.value='';});
@@ -2078,6 +2078,7 @@ function markMaintDone(toolId){
   saveLocal();
   toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:t.id,toolName:t.name,date:today,note});
   showStatus('✅ Maintenance logged — clock reset!','ok');
+  clearAllFilters();
   renderToolList();
 }
 
@@ -2386,6 +2387,10 @@ function filterMaintDueTools(){
   const s=$('srch-tools'); if(!s) return;
   if(s.dataset.maintDueFilter==='1'){ s.dataset.maintDueFilter=''; } else { s.dataset.maintDueFilter='1'; s.dataset.missingLocFilter=''; }
   renderToolList();
+}
+function clearAllFilters(){
+  const st=$('srch-tools'); if(st){ st.dataset.missingLocFilter=''; st.dataset.maintDueFilter=''; }
+  const si=$('srch-inv'); if(si){ si.dataset.missingLocFilter=''; }
 }
 
 // ════════════════════════════════════════════════════════════════
