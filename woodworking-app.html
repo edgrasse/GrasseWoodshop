@@ -308,7 +308,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
   </div>
 
-  <div id="psub-planned">
+  <div id="psub-planned" style="display:none;">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
       <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-planned" placeholder="Search planned projects..." oninput="renderPList('planned')"></div>
       <button id="proj-view-btn-planned" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('planned')">☰ Compact</button>
@@ -445,7 +445,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   <div id="sync-banner-shop"></div>
   <div class="sub-tabs">
     <button class="sub-tab active" onclick="showSTab('tools')"     id="stab-tools">🔧 Tools</button>
-    <button class="sub-tab"        onclick="showSTab('inventory')" id="stab-inventory">📦 Inventory</button>
+    <button class="sub-tab"        onclick="showSTab('inventory')" id="stab-inventory">📦 Supplies</button>
     <button class="sub-tab"        onclick="showSTab('add')"       id="stab-add">➕ Add New</button>
     <button class="sub-tab"        onclick="showSTab('bulk')"      id="stab-bulk">📍 Bulk Scan</button>
   </div>
@@ -1356,7 +1356,7 @@ function updateTool(id) {
   if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
   saveLocal();
   toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No',maintSchedule:tools[idx].maintSchedule});
-  showStatus('✅ Tool updated!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList();
+  showStatus('✅ Tool updated!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList(); setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); },100);
   const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
 }
@@ -1815,7 +1815,7 @@ function commitProj(p){
   toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,lessons:p.lessons,madeFor:p.madeFor,recipient:p.recipient,driveLink:(p.driveLinks||[p.driveLink]).join(' | '),tools:p.tools,toolNotes:p.toolNotes,tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',sourceUrl:p.sourceUrl||'',nextSteps:p.nextSteps||''});
   showStatus(p.isEdit?'✅ Project updated!':'✅ Project saved!','ok');
   clearProjForm(); renderAllPLists(); selToolIds=[]; selTags=[];
-  setTimeout(()=>showPTab(p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed'),350);
+  setTimeout(()=>{ showPTab(p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed'); window.scrollTo({top:0,behavior:'smooth'}); },350);
 }
 function clearProjForm(){
   ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons','p-source-url','p-next-steps'].forEach(id=>{const e=$(id);if(e)e.value='';});
@@ -1988,7 +1988,13 @@ schedule_text should be concise bullet points using \\n between items. Be specif
     const d=await res.json();
     const raw=(d.content?.[0]?.text||'').trim();
     let parsed;
-    try { parsed=JSON.parse(raw); } catch(e){ throw new Error('AI returned unexpected format'); }
+    try {
+      // Strip markdown fences and extract the first JSON object from the response
+      let clean = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (jsonMatch) clean = jsonMatch[0];
+      parsed = JSON.parse(clean);
+    } catch(e){ throw new Error('AI returned unexpected format'); }
     if(!parsed.interval_days||!parsed.schedule_text) throw new Error('Incomplete AI response');
 
     // Display preview with Use This Schedule button
@@ -2027,7 +2033,7 @@ function saveTool(){
   tools.push(tool); saveLocal();
   toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No',maintSchedule:tool.maintSchedule});
   if(maintNote) toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:tool.id,toolName:tool.name,date:new Date().toISOString().split('T')[0],note:maintNote});
-  showStatus('✅ Tool saved!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList();
+  showStatus('✅ Tool saved!','ok'); clearAllFilters(); clearToolForm(); showSTab('tools'); renderToolList(); setTimeout(()=>{ const el=$('tool-list'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); window.scrollTo({top:0,behavior:'smooth'}); },100);
 }
 function clearToolForm(){
   ['t-name','t-brand','t-model','t-serial','t-date','t-price','t-manual','t-notes','t-maint-note','t-drive-link'].forEach(id=>{const e=$(id);if(e)e.value='';});
@@ -2151,7 +2157,7 @@ function renderToolList(){
               <div class="item-name">${t.name}</div>
               <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
                 <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editTool('${t.id}')">✏️ Edit</button>
-                <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToInventory('${t.id}')">📦 →Inv</button>
+                <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToInventory('${t.id}')">📦 → Supplies</button>
                 <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${t.id}','tool')">🗑️</button>
               </div>
             </div>
@@ -2215,7 +2221,7 @@ async function scanInvPhoto(ev) {
       body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:300,
         messages:[{ role:'user', content:[
           { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 }},
-          { type:'text', text:`Identify this workshop inventory item (supply, consumable, hardware, material). Return ONLY JSON:\n{"name":"","category":"","location":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nLocation: only fill if you can clearly see a storage location label/tag, otherwise leave empty.\nName should be specific, e.g. "1-1/4 inch Brad Nails" or "220 Grit Sandpaper Sheets". No markdown.` }
+          { type:'text', text:`Identify this workshop supply, consumable, or accessory. Return ONLY JSON:\n{"name":"","category":"","location":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nLocation: only fill if you can clearly see a storage location label/tag, otherwise leave empty.\nName should be specific, e.g. "1-1/4 inch Brad Nails" or "220 Grit Sandpaper Sheets". No markdown.` }
         ]}]
       })
     });
@@ -2281,7 +2287,7 @@ function saveInvItem(){
   const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   inventory.push(item); saveLocal();
   toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
-  showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
+  showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList(); setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); },100);
 }
 function clearInvForm(){
   ['i-name','i-notes','i-scan-url'].forEach(id=>{const e=$(id);if(e)e.value='';});
@@ -2338,7 +2344,7 @@ function renderInvList(){
             <div class="item-name">${i.name}</div>
             <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
               <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();editInvItem('${i.id}')">✏️ Edit</button>
-              <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToTools('${i.id}')">🔧 →Tools</button>
+              <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:11px;" onclick="event.stopPropagation();moveToTools('${i.id}')">🔧 → Tools</button>
               <button class="btn btn-sm" style="padding:3px 9px;font-size:11px;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;" onclick="event.stopPropagation();deleteItem('${i.id}','inventory')">🗑️</button>
             </div>
           </div>
