@@ -2170,6 +2170,18 @@ function renderToolList(){
               ${ds==='due'?`<button class="btn btn-sm" style="padding:2px 9px;font-size:11px;background:#FDE8E8;color:#922B21;border:1px solid #F5B7B1;font-weight:700;" onclick="event.stopPropagation();markMaintDone('${t.id}')">✅ Mark Done</button>`:''}
               ${ds==='soon'?`<button class="btn btn-sm" style="padding:2px 9px;font-size:11px;background:#FFF3CD;color:#7A5700;border:1px solid #FFD966;font-weight:700;" onclick="event.stopPropagation();markMaintDone('${t.id}')">✅ Mark Done</button>`:''}
             </div>
+            ${(ds==='due'||ds==='soon')&&t.maintSchedule?(()=>{
+              try {
+                const sched=JSON.parse(t.maintSchedule);
+                const borderColor=ds==='due'?'#F5B7B1':'#FFD966';
+                const bgColor=ds==='due'?'#FEF2F2':'#FFFBEB';
+                const textColor=ds==='due'?'#922B21':'#7A5700';
+                return `<div style="margin-top:8px;padding:10px 12px;background:${bgColor};border:1px solid ${borderColor};border-radius:8px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${textColor};margin-bottom:6px;">📋 What to do:</div>
+                  <div style="font-size:12px;color:var(--charcoal);line-height:1.7;">${(sched.schedule_text||'').replace(/\n/g,'<br>').replace(/^• /gm,'• ')}</div>
+                </div>`;
+              } catch(e){ return ''; }
+            })():''}
             ${thumb?`<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''}
             ${t.hasMaint?`<div style="margin-top:6px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
             ${t.manual?`<a href="${t.manual}" target="_blank" style="font-size:11px;color:var(--accent);margin-top:4px;display:inline-block;">📄 Manual</a>`:''}
