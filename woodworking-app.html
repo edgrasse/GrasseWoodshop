@@ -1261,28 +1261,28 @@ function rerenderFor(type) {
 }
 
 // ── MOVE TOOL → INVENTORY ─────────────────────────────────────────
-function moveToInventory(toolId) {
+async function moveToInventory(toolId) {
   const t = tools.find(x=>x.id===toolId); if(!t) return;
-  if(!confirm(`Move "${t.name}" from Tools to Inventory?\n\nTool-specific fields (brand, model, serial, maintenance) will be dropped.`)) return;
+  if(!confirm(`Move "${t.name}" from Tools to Supplies?\n\nTool-specific fields (brand, model, serial, maintenance) will be dropped.`)) return;
   const item = { id:genId(), ts:Date.now(), name:t.name, category:'Miscellaneous', location:t.location||'', notes:t.notes||'' };
   inventory.push(item);
   tools = tools.filter(x=>x.id!==toolId);
   saveLocal();
-  toSheet({action:'delete', sheet:'Tools', id:toolId});
-  toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
-  showStatus('📦 Moved to Inventory','ok'); renderToolList(); renderInvList();
+  await toSheet({action:'delete', sheet:'Tools', id:toolId});
+  await toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  showStatus('📦 Moved to Supplies','ok'); renderToolList(); renderInvList();
 }
 
 // ── MOVE INVENTORY → TOOLS ────────────────────────────────────────
-function moveToTools(invId) {
+async function moveToTools(invId) {
   const i = inventory.find(x=>x.id===invId); if(!i) return;
-  if(!confirm(`Move "${i.name}" from Inventory to Tools?\n\nYou can fill in tool-specific details by editing it afterward.`)) return;
+  if(!confirm(`Move "${i.name}" from Supplies to Tools?\n\nYou can fill in tool-specific details by editing it afterward.`)) return;
   const tool = { id:genId(), ts:Date.now(), name:i.name, cat:'Other', brand:'', model:'', serial:'', date:'', price:'', location:i.location||'', manual:'', condition:'Good', notes:i.notes||'', driveLink:'', hasMaint:false, maintLog:[] };
   tools.push(tool);
   inventory = inventory.filter(x=>x.id!==invId);
   saveLocal();
-  toSheet({action:'delete', sheet:'Inventory', id:invId});
-  toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:'',model:'',serial:'',purchaseDate:'',price:'',location:tool.location,manual:'',condition:tool.condition,notes:tool.notes,driveLink:'',hasMaintLog:'No'});
+  await toSheet({action:'delete', sheet:'Inventory', id:invId});
+  await toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:'',model:'',serial:'',purchaseDate:'',price:'',location:tool.location,manual:'',condition:tool.condition,notes:tool.notes,driveLink:'',hasMaintLog:'No'});
   showStatus('🔧 Moved to Tools','ok'); renderToolList(); renderInvList();
 }
 
@@ -2295,6 +2295,7 @@ async function scanInvUrl() {
 }
 
 function saveInvItem(){
+  const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
   const loc=fullLoc('i');
   const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   inventory.push(item); saveLocal();
