@@ -39,8 +39,8 @@ body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--te
 .section.active { display:block; }
 
 /* SUB-TABS */
-.sub-tabs { display:flex; gap:5px; margin-bottom:13px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
-.sub-tab { padding:6px 12px; border-radius:20px; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; flex-shrink:0; }
+.sub-tabs { display:flex; gap:4px; margin-bottom:13px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
+.sub-tab { padding:5px 9px; border-radius:20px; border:1.5px solid var(--border); background:var(--warm); color:var(--charcoal); font-size:10.5px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; flex-shrink:0; }
 .sub-tab.active { background:var(--accent); border-color:var(--accent); color:white; }
 
 /* CARDS */
@@ -304,7 +304,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab active" onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
     <button class="sub-tab"        onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
     <button class="sub-tab"        onclick="showPTab('ideas')"     id="ptab-ideas">💡 Ideas</button>
-    <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Completed</button>
+    <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
   </div>
 
@@ -446,7 +446,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   <div class="sub-tabs">
     <button class="sub-tab active" onclick="showSTab('tools')"     id="stab-tools">🔧 Tools</button>
     <button class="sub-tab"        onclick="showSTab('inventory')" id="stab-inventory">📦 Supplies</button>
-    <button class="sub-tab"        onclick="showSTab('add')"       id="stab-add">➕ Add New</button>
+    <button class="sub-tab"        onclick="showSTab('add')"       id="stab-add">➕ Add</button>
     <button class="sub-tab"        onclick="showSTab('bulk')"      id="stab-bulk">📍 Bulk Scan</button>
   </div>
 
@@ -2811,15 +2811,24 @@ const FAQ_DATA = [
     q: 'How do I edit or archive a tool?',
     a: `Tap the <strong>⋯ button</strong> on any tool card in the Tools list. Select <strong>✏️ Edit</strong> to update details, or <strong>📦 Archive</strong> to hide it from view while keeping it in your Sheet.`
   },
+  {
+    q: 'How does the maintenance schedule work?',
+    a: `When adding or editing a tool, check <strong>📋 Include Maintenance Log</strong> then toggle on <strong>🗓 Enable Maintenance Schedule</strong>. Tap <strong>🤖 Get AI Maintenance Schedule</strong> — the AI generates a specific checklist and recommended service interval for that tool.<br><br>Tap <strong>✅ Use This Schedule</strong> to lock it in, then save the tool.<br><br>Once saved, the tool card shows:<ul><li><strong>🔧 Service Due</strong> (red) or <strong>🔧 Due Soon</strong> (yellow) badges when service is approaching or overdue</li><li>A <strong>📋 What to do:</strong> checklist expanded directly on the card so you know exactly what maintenance is needed</li><li>A <strong>✅ Mark Done</strong> button — tap it when service is complete to reset the clock</li></ul>
+    <div class="faq-tip">💡 The maintenance schedule is designed for large stationary power tools that need regular service — band saw, drum sander, table saw, etc.</div>`
+  },
+  {
+    q: 'How do I move an item between Tools and Supplies?',
+    a: `If you added something to the wrong list, you can move it without deleting and re-adding.<br><br><strong>Tool → Supplies:</strong> Find the tool card and tap <strong>📦 → Supplies</strong>. The item moves to your Supplies list. Tool-specific fields (brand, model, serial, maintenance) are dropped — only name, location, and notes carry over.<br><br><strong>Supply → Tools:</strong> Find the supply card and tap <strong>🔧 → Tools</strong>. The item moves to your Tools list. You can fill in the tool-specific details by editing it afterward.<br><br>Both moves update the Google Sheet automatically.`
+  },
 
   { section: '📦 Shop — Supplies' },
   {
     q: 'What is the Supplies section for?',
-    a: `Inventory is for consumable supplies and small items that aren't tools — things like picture hangers, brad nails, sandpaper grits, finishing supplies, or wood stock. Each item just needs a name, category, location, and optional notes.`
+    a: `Supplies is for consumable supplies and small items that aren't tools — things like picture hangers, brad nails, sandpaper grits, finishing supplies, or wood stock. Each item just needs a name, category, location, and optional notes.`
   },
   {
-    q: 'How do I add an inventory item?',
-    a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → tap <strong>📦 Add Inventory</strong> at the top to switch to the inventory form. Fill in the name, category, location, and any notes. Tap <strong>💾 Save Item</strong>.`
+    q: 'How do I add a supply item?',
+    a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → tap <strong>📦 Add Supply</strong> at the top to switch to the supply form. Fill in the name, category, location, and any notes. Tap <strong>💾 Save Item</strong>.`
   },
 
   { section: '📸 Photos & Google Drive' },
@@ -2903,7 +2912,7 @@ const FAQ_DATA = [
   },
   {
     q: 'How does the Google Sheet fit in?',
-    a: `The Google Sheet at <em>Grasse Woodshop</em> is your permanent backup. Every time you save a project, tool, inventory item, or resource in the app, it automatically writes a row to the Sheet.<br><br>When you open the app, it syncs everything back from the Sheet so you never lose data even if you clear your browser or switch devices. You can also view and search all your data directly in the Sheet.`
+    a: `The Google Sheet at <em>Grasse Woodshop</em> is your permanent backup. Every time you save a project, tool, supply, or resource in the app, it automatically writes a row to the Sheet.<br><br>When you open the app, it syncs everything back from the Sheet so you never lose data even if you clear your browser or switch devices. You can also view and search all your data directly in the Sheet.`
   },
   {
     q: 'How do I add my company logo to the app?',
