@@ -480,7 +480,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <span style="font-size:15px;">📍</span><span id="inv-loc-alert-msg"></span>
       <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
     </div>
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-inv" placeholder="Search inventory..." oninput="renderInvList()"></div>
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-inv" placeholder="Search supplies..." oninput="renderInvList()"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 2px;">
       <span id="inv-count" style="font-size:13px;color:var(--muted);"></span>
       <button id="inv-view-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="toggleInvView()">☰ Compact</button>
@@ -492,7 +492,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div class="card" style="padding:13px;">
       <div style="display:flex;gap:8px;">
         <button class="btn btn-primary btn-sm" id="add-type-tool" onclick="setAddType('tool')" style="flex:1;">🔧 Add Tool</button>
-        <button class="btn btn-secondary btn-sm" id="add-type-inv" onclick="setAddType('inv')" style="flex:1;">📦 Add Inventory</button>
+        <button class="btn btn-secondary btn-sm" id="add-type-inv" onclick="setAddType('inv')" style="flex:1;">📦 Add Supply</button>
       </div>
       <div style="margin-top:11px;padding:10px;background:#f5f0eb;border-radius:8px;border:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -647,7 +647,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <!-- INVENTORY FORM -->
     <div id="add-inv-form" style="display:none;">
       <div class="card">
-        <div class="card-title">📦 Add Inventory Item</div>
+        <div class="card-title">📦 Add Supply Item</div>
 
         <!-- AI SCAN SECTION -->
         <div class="card" style="background:var(--warm);border:1.5px dashed var(--accent);margin-bottom:13px;">
@@ -726,7 +726,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   <div id="ssub-bulk" style="display:none;">
     <div class="card">
       <div class="card-title">📍 Bulk Scan by Location</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:11px;">Pick a location, take one photo per tool. AI identifies each one and adds it to your tool inventory.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:11px;">Pick a location, take one photo per tool. AI identifies each one and adds it to your tools.</p>
       <div class="form-row"><label>Location to Scan</label>
         <select id="b-location" onchange="onLocChg('b')">
           <option value="">Select location...</option>
@@ -854,7 +854,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <div class="chat-msg ai">
         <div class="sender">Advisor</div>
         <div class="chat-bubble">
-          👋 Hi! I'm your EG Custom Woodworking advisor. I know your full tool inventory, project history, and saved resources — my advice is tailored to your shop and skill level.<br><br>
+          👋 Hi! I'm your EG Custom Woodworking advisor. I know your full tool inventory, supplies, project history, and saved resources — my advice is tailored to your shop and skill level.<br><br>
           Ask me about:<br>
           • Wood species, grain &amp; defects<br>
           • Project planning &amp; joinery<br>
@@ -993,7 +993,7 @@ async function syncFromSheet() {
     // Map the sync response (keyed by sheet name) to the format the rest of the function expects
     const pData = all.Projects ? { rows: all.Projects.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Description,obj['Wood Species'],obj.Dimensions,obj.Status,obj['Lessons Learned'],obj['Made For'],obj.Recipient,obj['Photo Link'],obj['Tools Used'],obj['Tool Notes'],obj.Notes,obj.Tags,obj.Priority,obj['Source URL']]) } : null;
     const tData = all.Tools     ? { rows: all.Tools.map(obj =>     [obj.ID,obj.Timestamp,obj.Category,obj.Name,obj.Brand,obj.Model,obj['Serial Number'],obj['Purchase Date'],obj.Price,obj.Location,obj.Manual,obj.Condition,obj.Notes,obj['Drive Link'],obj['Has Maint Log'],obj['Maint Schedule']||'']) } : null;
-    const iData = all.Inventory ? { rows: all.Inventory.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Category,obj.Location,obj.Notes]) } : null;
+    const iData = all.Supplies ? { rows: all.Supplies.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Category,obj.Location,obj.Notes]) } : null;
     const rData = all.Resources ? { rows: all.Resources.map(obj => [obj.ID,obj.Timestamp,obj.Title,obj.Type,obj.URL,obj.Notes,obj['Idea Note'],obj['Project ID'],obj['Tool ID']]) } : null;
     const mData = all.Maintenance?{ rows: all.Maintenance.map(obj=>[obj.ID,obj['Tool ID'],obj['Tool Name'],obj.Date,obj.Note]) } : null;
 
@@ -1250,7 +1250,7 @@ function deleteItem(id, type) {
 }
 
 function sheetForType(type) {
-  return {project:'Projects',tool:'Tools',inventory:'Inventory',resource:'Resources'}[type]||'Projects';
+  return {project:'Projects',tool:'Tools',inventory:'Supplies',resource:'Resources'}[type]||'Projects';
 }
 
 function rerenderFor(type) {
@@ -1269,7 +1269,7 @@ async function moveToInventory(toolId) {
   tools = tools.filter(x=>x.id!==toolId);
   saveLocal();
   await toSheet({action:'delete', sheet:'Tools', id:toolId});
-  await toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  await toSheet({action:'save',sheet:'Supplies',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
   showStatus('📦 Moved to Supplies','ok'); renderToolList(); renderInvList();
 }
 
@@ -1281,7 +1281,7 @@ async function moveToTools(invId) {
   tools.push(tool);
   inventory = inventory.filter(x=>x.id!==invId);
   saveLocal();
-  await toSheet({action:'delete', sheet:'Inventory', id:invId});
+  await toSheet({action:'delete', sheet:'Supplies', id:invId});
   await toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:'',model:'',serial:'',purchaseDate:'',price:'',location:tool.location,manual:'',condition:tool.condition,notes:tool.notes,driveLink:'',hasMaintLog:'No'});
   showStatus('🔧 Moved to Tools','ok'); renderToolList(); renderInvList();
 }
@@ -1386,7 +1386,7 @@ function updateInvItem(id) {
   const loc=fullLoc('i'), idx=inventory.findIndex(x=>x.id===id); if(idx===-1) return;
   inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   saveLocal();
-  toSheet({action:'save',sheet:'Inventory',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes});
+  toSheet({action:'save',sheet:'Supplies',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes});
   showStatus('✅ Item updated!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
   const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
@@ -2272,7 +2272,7 @@ async function scanInvUrl() {
     const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:400,
         tools:[{ type:'web_search_20250305', name:'web_search' }],
-        messages:[{ role:'user', content:`Look up this product URL and identify what it is as a woodworking shop inventory item: ${url}\n\nReturn ONLY a JSON object (no markdown):\n{"name":"","category":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nName should be specific with size/spec if available, e.g. "1-1/4 inch Brad Nails 1000-pack" or "220 Grit Sandpaper Sheets 50-pack".` }]
+        messages:[{ role:'user', content:`Look up this product URL and identify what it is as a woodworking shop supply or consumable: ${url}\n\nReturn ONLY a JSON object (no markdown):\n{"name":"","category":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nName should be specific with size/spec if available, e.g. "1-1/4 inch Brad Nails 1000-pack" or "220 Grit Sandpaper Sheets 50-pack".` }]
       })
     });
     const d = await res.json();
@@ -2299,7 +2299,7 @@ function saveInvItem(){
   const loc=fullLoc('i');
   const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   inventory.push(item); saveLocal();
-  toSheet({action:'save',sheet:'Inventory',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  toSheet({action:'save',sheet:'Supplies',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
   showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList(); setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); },100);
 }
 function clearInvForm(){
@@ -2340,7 +2340,7 @@ function renderInvList(){
   }
   let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
-  if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No inventory items yet.<br>Tap ➕ Add New → Add Inventory</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
+  if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No supplies yet.<br>Tap ➕ Add New → Add Supply</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
   const cats={}; list.forEach(i=>{ if(!cats[i.category]) cats[i.category]=[]; cats[i.category].push(i); });
@@ -2791,7 +2791,7 @@ const FAQ_DATA = [
 
   { section: '🔧 Shop — Tools' },
   {
-    q: 'How do I add a tool to my inventory?',
+    q: 'How do I add a tool to my shop?',
     a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → make sure <strong>🔧 Add Tool</strong> is selected at the top.<br><br>You have two ways to fill in the details:<ul><li><strong>Scan a label:</strong> Tap the scan area and take a photo of the tool or its label sticker. AI will auto-fill Brand, Model, and other fields.</li><li><strong>Manual entry:</strong> Fill in the fields yourself.</li></ul>Tap <strong>💾 Save Tool</strong> when done.`
   },
   {
@@ -2800,7 +2800,7 @@ const FAQ_DATA = [
   },
   {
     q: 'How does the Bulk Scan feature work?',
-    a: `Bulk Scan lets you photograph your entire shop one tool at a time by location.<ul><li>Go to <strong>Shop</strong> → <strong>📍 Bulk Scan</strong></li><li>Select the location you're scanning (e.g. Tool Wall, Craftsman Bench Drawer 2)</li><li>Tap <strong>📷 Take Photo</strong> for each tool</li><li>AI identifies the tool and shows you a preview</li><li>Tap <strong>✅ Add to Inventory</strong> to confirm, or <strong>✕ Skip</strong> to discard</li></ul>
+    a: `Bulk Scan lets you photograph your entire shop one tool at a time by location.<ul><li>Go to <strong>Shop</strong> → <strong>📍 Bulk Scan</strong></li><li>Select the location you're scanning (e.g. Tool Wall, Craftsman Bench Drawer 2)</li><li>Tap <strong>📷 Take Photo</strong> for each tool</li><li>AI identifies the tool and shows you a preview</li><li>Tap <strong>✅ Add to Tools</strong> to confirm, or <strong>✕ Skip</strong> to discard</li></ul>
     <div class="faq-tip">💡 Get close to each tool for best results — one tool per photo.</div>`
   },
   {
@@ -2809,12 +2809,12 @@ const FAQ_DATA = [
   },
   {
     q: 'How do I edit or archive a tool?',
-    a: `Tap the <strong>⋯ button</strong> on any tool card in the inventory. Select <strong>✏️ Edit</strong> to update details, or <strong>📦 Archive</strong> to hide it from view while keeping it in your Sheet.`
+    a: `Tap the <strong>⋯ button</strong> on any tool card in the Tools list. Select <strong>✏️ Edit</strong> to update details, or <strong>📦 Archive</strong> to hide it from view while keeping it in your Sheet.`
   },
 
-  { section: '📦 Shop — Inventory' },
+  { section: '📦 Shop — Supplies' },
   {
-    q: 'What is the Inventory section for?',
+    q: 'What is the Supplies section for?',
     a: `Inventory is for consumable supplies and small items that aren't tools — things like picture hangers, brad nails, sandpaper grits, finishing supplies, or wood stock. Each item just needs a name, category, location, and optional notes.`
   },
   {
