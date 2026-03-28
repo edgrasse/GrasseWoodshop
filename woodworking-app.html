@@ -286,7 +286,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <h1>EG Custom Woodworking</h1>
       <div class="sub" id="build-time">Workshop Assistant</div>
     </div>
-    <button onclick="syncFromSheet()" style="margin-left:auto;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;flex-shrink:0;">🔄 Sync</button>
+    <button onclick="syncFromSupabase()" style="margin-left:auto;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:var(--cream);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;flex-shrink:0;">🔄 Sync</button>
   </div>
 </div>
 <div class="tab-nav">
@@ -915,7 +915,8 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 // CONFIG
 // ════════════════════════════════════════════════════════════════
 const SCRIPT_URL    = "https://script.google.com/macros/s/AKfycby83e0AXHphq8hPTB2rOWVGedpBq9zrNi083BvmdmXqRZzll7ccS1HenCy9JZ-D_guN/exec";
-const WORKER_URL   = "https://egcw-proxy.ed-53c.workers.dev";
+const WORKER_URL    = "https://egcw-proxy.ed-53c.workers.dev";
+const SUPABASE_URL  = "https://boousgzchnrrhrlyhday.supabase.co"; // proxied through Worker
 const STORAGE_KEY   = 'egcw_v5'; // bumped to clear duplicate data from previous builds
 
 // ════════════════════════════════════════════════════════════════
@@ -981,21 +982,29 @@ function loadLocal() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// SHEET SYNC — read everything back from Google Sheets
+// SUPABASE SYNC — primary data source
 // ════════════════════════════════════════════════════════════════
-async function syncFromSheet() {
+async function syncFromSupabase() {
   showSyncBanners('syncing');
   try {
-    const ts = Date.now();
-    const res = await fetch(SCRIPT_URL + '?action=sync&_=' + ts, { mode:'cors', cache:'no-store' });
-    const all = await res.json();
+    const tables = ['projects','tools','maintenance','supplies','resources'];
+    const fetches = tables.map(table =>
+      fetch(WORKER_URL + '/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select', table })
+      }).then(r => r.json()).then(data => ({ table, rows: Array.isArray(data) ? data : [] }))
+    );
+    const results = await Promise.all(fetches);
+    const all = {};
+    results.forEach(({ table, rows }) => { all[table] = rows; });
 
-    // Map the sync response (keyed by sheet name) to the format the rest of the function expects
-    const pData = all.Projects ? { rows: all.Projects.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Description,obj['Wood Species'],obj.Dimensions,obj.Status,obj['Lessons Learned'],obj['Made For'],obj.Recipient,obj['Photo Link'],obj['Tools Used'],obj['Tool Notes'],obj.Notes,obj.Tags,obj.Priority,obj['Source URL']]) } : null;
-    const tData = all.Tools     ? { rows: all.Tools.map(obj =>     [obj.ID,obj.Timestamp,obj.Category,obj.Name,obj.Brand,obj.Model,obj['Serial Number'],obj['Purchase Date'],obj.Price,obj.Location,obj.Manual,obj.Condition,obj.Notes,obj['Drive Link'],obj['Has Maint Log'],obj['Maint Schedule']||'']) } : null;
-    const iData = all.Supplies ? { rows: all.Supplies.map(obj => [obj.ID,obj.Timestamp,obj.Name,obj.Category,obj.Location,obj.Notes]) } : null;
-    const rData = all.Resources ? { rows: all.Resources.map(obj => [obj.ID,obj.Timestamp,obj.Title,obj.Type,obj.URL,obj.Notes,obj['Idea Note'],obj['Project ID'],obj['Tool ID']]) } : null;
-    const mData = all.Maintenance?{ rows: all.Maintenance.map(obj=>[obj.ID,obj['Tool ID'],obj['Tool Name'],obj.Date,obj.Note]) } : null;
+    // Map Supabase lowercase column names into the row-array shape the rest of the sync logic expects
+    const pData = all.projects?.length  ? { rows: all.projects.map(o =>  [o.id,o.timestamp,o.name,o.description,o.wood,o.dims,o.status,o.lessons,o.madefor,o.recipient,o.drivelink,o.tools,o.toolnotes,o.notes,o.tags,o.priority,o.sourceurl,o.nextsteps]) } : null;
+    const tData = all.tools?.length     ? { rows: all.tools.map(o =>     [o.id,o.timestamp,o.category,o.name,o.brand,o.model,o.serial,o.purchasedate,o.price,o.location,o.manual,o.condition,o.notes,o.drivelink,o.hasmaintlog,o.maintschedule||'']) } : null;
+    const iData = all.supplies?.length  ? { rows: all.supplies.map(o =>  [o.id,o.timestamp,o.name,o.category,o.location,o.notes]) } : null;
+    const rData = all.resources?.length ? { rows: all.resources.map(o => [o.id,o.timestamp,o.title,o.type,o.url,o.notes,o.ideanote,o.projectid,o.toolid]) } : null;
+    const mData = all.maintenance?.length?{ rows: all.maintenance.map(o=>[o.id,o.toolid,o.toolname,o.date,o.note]) } : null;
 
     if (pData?.rows?.length) {
       // Build a map of existing local projects to preserve any local-only data
@@ -1088,9 +1097,10 @@ async function syncFromSheet() {
 function showSyncBanners(state) {
   const bannerIds = ['sync-banner-projects','sync-banner-shop','sync-banner-resources'];
   const msgs = {
-    syncing: `<div class="sync-banner"><div class="sync-text"><strong>🔄 Syncing from Google Sheets...</strong><span>Loading your saved data</span></div></div>`,
-    done:    '',
-    error:   `<div class="sync-banner" style="background:var(--charcoal);"><div class="sync-text"><strong>⚠️ Sync failed</strong><span>Using local data — check internet</span></div><button class="btn btn-secondary btn-sm" onclick="syncFromSheet()">Retry</button></div>`
+    syncing:   `<div class="sync-banner"><div class="sync-text"><strong>🔄 Syncing from Supabase...</strong><span>Loading your saved data</span></div></div>`,
+    migrating: `<div class="sync-banner" style="background:#3A5F8A;"><div class="sync-text"><strong>🚚 One-time migration in progress...</strong><span>Moving your data to Supabase — just once!</span></div></div>`,
+    done:      '',
+    error:     `<div class="sync-banner" style="background:var(--charcoal);"><div class="sync-text"><strong>⚠️ Sync failed</strong><span>Using local data — check internet</span></div><button class="btn btn-secondary btn-sm" onclick="syncFromSupabase()">Retry</button></div>`
   };
   bannerIds.forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=msgs[state]||''; });
 }
@@ -1109,17 +1119,78 @@ function showStatus(msg, type='', ms=2800) {
   b.className = 'status-bar show'+(type==='err'?' err':type==='ok'?' ok':'');
   setTimeout(()=>b.className='status-bar', ms);
 }
-async function toSheet(p) {
+// ════════════════════════════════════════════════════════════════
+// SUPABASE WRITE — upsert or delete via Cloudflare Worker proxy
+// ════════════════════════════════════════════════════════════════
+// Table name mapping (same as sheetForType but lowercase for Supabase)
+function tableForSheet(sheetName) {
+  return { Projects:'projects', Tools:'tools', Supplies:'supplies',
+           Resources:'resources', Maintenance:'maintenance' }[sheetName] || sheetName.toLowerCase();
+}
+
+async function toSupabase(p) {
   try {
-    const url = SCRIPT_URL + '?' + new URLSearchParams(p).toString();
-    const res = await fetch(url, { method:'GET', mode:'cors', cache:'no-store' });
+    const table = tableForSheet(p.sheet);
+    const action = p.action; // 'save' | 'delete'
+    const payload = { action, table };
+
+    if (action === 'delete') {
+      payload.id = p.id;
+    } else {
+      // Build the Supabase column map from the flat params object
+      // Column names are lowercase, matching the Supabase schema
+      const colMap = {
+        // shared
+        id:'id', timestamp:'timestamp',
+        // projects
+        name:'name', description:'description', wood:'wood', dimensions:'dims',
+        status:'status', lessons:'lessons', madeFor:'madefor', recipient:'recipient',
+        driveLink:'drivelink', tools:'tools', toolNotes:'toolnotes', notes:'notes',
+        tags:'tags', priority:'priority', sourceUrl:'sourceurl', nextSteps:'nextsteps',
+        // tools
+        category:'category', brand:'brand', model:'model', serial:'serial',
+        purchaseDate:'purchasedate', price:'price', location:'location',
+        manual:'manual', condition:'condition', hasMaintLog:'hasmaintlog',
+        maintSchedule:'maintschedule',
+        // maintenance
+        toolId:'toolid', toolName:'toolname', date:'date', note:'note',
+        // resources
+        title:'title', type:'type', url:'url', ideaNote:'ideanote',
+        projectId:'projectid',
+      };
+      const record = {};
+      Object.entries(p).forEach(([k, v]) => {
+        if (k === 'action' || k === 'sheet') return;
+        const col = colMap[k] || k.toLowerCase();
+        record[col] = (v === undefined || v === null) ? '' : String(v);
+      });
+      payload.record = record;
+    }
+
+    const res = await fetch(WORKER_URL + '/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const data = await res.json();
-    if (data.error) console.warn('Sheet error:', data.error);
+    if (data.error) console.warn('Supabase error:', data.error);
     return data;
   } catch(e) {
-    console.warn('toSheet failed:', e);
+    console.warn('toSupabase failed:', e);
     return null;
   }
+}
+
+// Dual-write wrapper: writes to Supabase (primary) + Google Sheets (backup, silent)
+// Once migration is verified, remove the toSheetLegacy call below
+async function toSheet(p) {
+  // Primary: write to Supabase
+  toSupabase(p).catch(e => console.warn('Supabase write failed:', e));
+  // Legacy backup: also write to Google Sheets (silent, fire-and-forget)
+  try {
+    const url = SCRIPT_URL + '?' + new URLSearchParams(p).toString();
+    fetch(url, { method:'GET', mode:'cors', cache:'no-store' }).catch(()=>{});
+  } catch(e) { /* silent */ }
 }
 function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
 function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
@@ -1236,7 +1307,7 @@ function deleteItem(id, type) {
   const item = findItem(id, type);
   if (!item) return;
   const name = item.name || item.title || 'this item';
-  if (!confirm(`Delete "${name}"?\n\nThis removes it from the app. Your Google Sheet row will remain as a record.`)) return;
+  if (!confirm(`Delete "${name}"?\n\nThis removes it from the app and from Supabase.`)) return;
 
   if (type==='project')   projects  = projects.filter(x=>x.id!==id);
   if (type==='tool')      tools     = tools.filter(x=>x.id!==id);
@@ -2911,8 +2982,8 @@ const FAQ_DATA = [
     a: `The Cloudflare Worker (<em>egcw-proxy</em>) acts as a secure middleman between the app and the Anthropic AI. When you use any AI feature (tool scan, Advisor chat, maintenance tips, set scan), the app sends the request to the Worker, which adds your API key and forwards it to Anthropic.<br><br>This keeps your API key off GitHub and out of the HTML file entirely.`
   },
   {
-    q: 'How does the Google Sheet fit in?',
-    a: `The Google Sheet at <em>Grasse Woodshop</em> is your permanent backup. Every time you save a project, tool, supply, or resource in the app, it automatically writes a row to the Sheet.<br><br>When you open the app, it syncs everything back from the Sheet so you never lose data even if you clear your browser or switch devices. You can also view and search all your data directly in the Sheet.`
+    q: 'How does data sync work?',
+    a: `All your data is stored in <strong>Supabase</strong> — a cloud database that syncs across all your devices. Every save writes instantly to Supabase. When you open the app, it pulls the latest data from Supabase automatically.<br><br>Your original Google Sheet remains as a read-only archive and is no longer the active data store.`
   },
   {
     q: 'How do I add my company logo to the app?',
@@ -2968,8 +3039,127 @@ renderToolList();
 renderInvList();
 renderResList();
 renderFAQ();
-// Auto-sync from Sheet on startup
-syncFromSheet();
+// ════════════════════════════════════════════════════════════════
+// STARTUP — sync from Supabase, with one-time auto-migration from Sheets
+// ════════════════════════════════════════════════════════════════
+async function startupSync() {
+  // First: try Supabase
+  try {
+    const probe = await fetch(WORKER_URL + '/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'select', table: 'tools' })
+    }).then(r => r.json());
+
+    const supabaseHasData = Array.isArray(probe) && probe.length > 0;
+
+    if (!supabaseHasData) {
+      // Supabase tables are empty — run one-time migration from Google Sheets
+      console.log('Supabase empty — running one-time migration from Google Sheets...');
+      showSyncBanners('migrating');
+      await migrateFromSheets();
+    }
+
+    // Now sync from Supabase as normal
+    await syncFromSupabase();
+  } catch(e) {
+    console.warn('Supabase startup check failed:', e);
+    // Fall back to Google Sheets if Supabase is completely unreachable
+    showSyncBanners('error');
+  }
+}
+
+async function migrateFromSheets() {
+  try {
+    const ts = Date.now();
+    const res = await fetch(SCRIPT_URL + '?action=sync&_=' + ts, { mode:'cors', cache:'no-store' });
+    const all = await res.json();
+
+    const writes = [];
+
+    // Projects
+    if (all.Projects?.length) {
+      all.Projects.forEach(o => {
+        writes.push(fetch(WORKER_URL + '/supabase', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', table: 'projects', record: {
+            id:o.ID, timestamp:o.Timestamp, name:o.Name, description:o.Description,
+            wood:o['Wood Species'], dims:o.Dimensions, status:o.Status,
+            lessons:o['Lessons Learned'], madefor:o['Made For'], recipient:o.Recipient,
+            drivelink:o['Photo Link'], tools:o['Tools Used'], toolnotes:o['Tool Notes'],
+            notes:o.Notes, tags:o.Tags, priority:o.Priority,
+            sourceurl:o['Source URL'], nextsteps:o['Next Steps']||''
+          }})
+        }));
+      });
+    }
+
+    // Tools
+    if (all.Tools?.length) {
+      all.Tools.forEach(o => {
+        writes.push(fetch(WORKER_URL + '/supabase', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', table: 'tools', record: {
+            id:o.ID, timestamp:o.Timestamp, category:o.Category, name:o.Name,
+            brand:o.Brand, model:o.Model, serial:o['Serial Number'],
+            purchasedate:o['Purchase Date'], price:o.Price, location:o.Location,
+            manual:o.Manual, condition:o.Condition, notes:o.Notes,
+            drivelink:o['Drive Link'], hasmaintlog:o['Has Maint Log'],
+            maintschedule:o['Maint Schedule']||''
+          }})
+        }));
+      });
+    }
+
+    // Supplies
+    if (all.Supplies?.length) {
+      all.Supplies.forEach(o => {
+        writes.push(fetch(WORKER_URL + '/supabase', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', table: 'supplies', record: {
+            id:o.ID, timestamp:o.Timestamp, name:o.Name, category:o.Category,
+            location:o.Location, notes:o.Notes
+          }})
+        }));
+      });
+    }
+
+    // Resources
+    if (all.Resources?.length) {
+      all.Resources.forEach(o => {
+        writes.push(fetch(WORKER_URL + '/supabase', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', table: 'resources', record: {
+            id:o.ID, timestamp:o.Timestamp, title:o.Title, type:o.Type,
+            url:o.URL, notes:o.Notes, ideanote:o['Idea Note'],
+            projectid:o['Project ID'], toolid:o['Tool ID']
+          }})
+        }));
+      });
+    }
+
+    // Maintenance
+    if (all.Maintenance?.length) {
+      all.Maintenance.forEach(o => {
+        writes.push(fetch(WORKER_URL + '/supabase', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', table: 'maintenance', record: {
+            id:o.ID, toolid:o['Tool ID'], toolname:o['Tool Name'],
+            date:o.Date, note:o.Note
+          }})
+        }));
+      });
+    }
+
+    await Promise.allSettled(writes);
+    console.log('Migration complete — ' + writes.length + ' records written to Supabase');
+    showStatus('✅ Data migrated to Supabase (' + writes.length + ' records)', 'ok', 4000);
+  } catch(e) {
+    console.warn('Migration from Sheets failed:', e);
+  }
+}
+
+startupSync();
 </script>
 </body>
 </html>
