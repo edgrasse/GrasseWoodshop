@@ -1547,7 +1547,7 @@ function editTool(id) {
   showStatus('✏️ Editing — make changes and tap Update Tool','',3500);
 }
 
-async function updateTool(id) {
+function updateTool(id) {
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
   const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
   const hasSched=$('t-sched-toggle').checked, schedJson=gv('t-sched-json')||'';
@@ -1556,16 +1556,7 @@ async function updateTool(id) {
   let maintSchedule=existing.maintSchedule||'', maintIntervalDays=existing.maintIntervalDays||0;
   if(hasSched&&schedJson){ try{ const p=JSON.parse(schedJson); maintSchedule=schedJson; maintIntervalDays=p.interval_days||0; }catch(e){} }
   if(!hasSched){ maintSchedule=''; maintIntervalDays=0; }
-  // Upload pending scan photo if user chose to save it
-  let driveLink = gv('t-drive-link');
-  if(window._saveToolPhotoOnCreate && window._pendingToolPhoto) {
-    try {
-      showStatus('⏳ Uploading photo...','');
-      driveLink = await uploadToSupabaseStorage(window._pendingToolPhoto.file);
-    } catch(e) { console.warn('Photo upload failed:', e); }
-    window._pendingToolPhoto = null; window._saveToolPhotoOnCreate = false;
-  }
-  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink,maintSchedule,maintIntervalDays};
+  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),maintSchedule,maintIntervalDays};
   if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
   saveLocal();
   toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No',maintSchedule:tools[idx].maintSchedule});
@@ -1594,19 +1585,10 @@ function editInvItem(id) {
   showStatus('✏️ Editing — make changes and tap Update Item','',3500);
 }
 
-async function updateInvItem(id) {
+function updateInvItem(id) {
   const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
   const loc=fullLoc('i'), idx=inventory.findIndex(x=>x.id===id); if(idx===-1) return;
-  // Upload pending scan photo if user chose to save it
-  let driveLink = inventory[idx].driveLink || '';
-  if(window._saveInvPhotoOnCreate && window._pendingInvPhotoFile) {
-    try {
-      showStatus('⏳ Uploading photo...','');
-      driveLink = await uploadToSupabaseStorage(window._pendingInvPhotoFile);
-    } catch(e) { console.warn('Photo upload failed:', e); }
-    window._pendingInvPhotoFile = null; window._saveInvPhotoOnCreate = false;
-  }
-  inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes'),driveLink};
+  inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   saveLocal();
   toSheet({action:'save',sheet:'Supplies',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes,driveLink:inventory[idx].driveLink||''});
   showStatus('✅ Item updated!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
@@ -2418,7 +2400,7 @@ function renderToolList(){
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
       ${ts.map(t=>{
-        const thumb=driveThumb(t.driveLink);
+        const thumb=t.driveLink&&!t.driveLink.includes('drive.google.com')?t.driveLink:driveThumb(t.driveLink);
         const ds=maintDueStatus(t);
         const noLoc=!(t.location||'').trim();
         const dueBadge=ds==='due'?`<span style="background:#FDE8E8;border:1px solid #F5B7B1;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#922B21;">🔧 Service Due</span>`:
@@ -2670,7 +2652,12 @@ function renderInvList(){
             </div>
           </div>
           <div class="item-meta">${i.location?'📍 '+i.location:locBadge}${i.notes?'<br>'+i.notes:''}</div>
-          ${(i.driveLink&&i.driveLink.includes('drive.google.com'))?`<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('supply','${i.id}')">📎 Drive photo — tap to replace</span>`:''}
+          ${(()=>{
+              const iDrive = i.driveLink && i.driveLink.includes('drive.google.com');
+              if (iDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('supply','${i.id}')">📎 Drive photo — tap to replace</span>`;
+              if (i.driveLink) return `<img src="${i.driveLink}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+              return '';
+            })()}
         </div>
       </div>`;}).join('')}
     </div>`).join('');
