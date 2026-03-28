@@ -207,6 +207,21 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .sync-banner .sync-text { font-size:12px; }
 .sync-banner .sync-text strong { display:block; font-size:13px; margin-bottom:2px; }
 
+/* DRIVE MIGRATION */
+.drive-migrate-banner { background:#FFF8E7; border:1px solid #FFD966; border-radius:var(--radius); padding:9px 13px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:#7A5700; font-weight:600; }
+.drive-badge { display:inline-flex; align-items:center; gap:4px; background:#FFF3CD; border:1px solid #FFD966; border-radius:10px; padding:2px 9px; font-size:11px; font-weight:700; color:#7A5700; cursor:pointer; margin-top:5px; }
+.drive-badge:active { background:#FFE89A; }
+
+/* PHOTO REPLACE SHEET */
+.photo-sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; display:none; align-items:flex-end; justify-content:center; }
+.photo-sheet-overlay.open { display:flex; }
+.photo-sheet { background:var(--white); border-radius:18px 18px 0 0; padding:22px 20px 36px; width:100%; max-width:520px; }
+.photo-sheet-title { font-family:'Playfair Display',serif; font-size:17px; color:var(--dark); margin-bottom:4px; }
+.photo-sheet-sub { font-size:12px; color:var(--muted); margin-bottom:18px; }
+.photo-sheet-btn { width:100%; padding:14px; border-radius:var(--radius); border:none; font-size:15px; font-weight:600; cursor:pointer; margin-bottom:10px; }
+.photo-sheet-btn.primary { background:var(--accent); color:white; }
+.photo-sheet-btn.cancel  { background:var(--warm); color:var(--charcoal); border:1.5px solid var(--border); }
+
 /* STATUS BAR */
 .status-bar { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--dark); color:var(--cream); padding:10px 20px; border-radius:30px; font-size:13px; font-weight:500; box-shadow:var(--shadow-lg); z-index:200; opacity:0; transition:opacity 0.3s; pointer-events:none; max-width:88%; text-align:center; }
 .status-bar.show { opacity:1; }
@@ -300,6 +315,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 <!-- ═══════════════════════ PROJECTS ═══════════════════════ -->
 <div class="section active" id="section-projects">
   <div id="sync-banner-projects"></div>
+  <div id="proj-drive-banner"></div>
   <div class="sub-tabs">
     <button class="sub-tab active" onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
     <button class="sub-tab"        onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
@@ -472,10 +488,12 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <span class="filter-chip" data-cat="Measuring & Layout"   onclick="toggleCatFilter(this)">📐 Measuring</span>
       <span class="filter-chip" data-cat="Clamps & Workholding" onclick="toggleCatFilter(this)">🗜️ Clamps</span>
     </div>
+    <div id="tool-drive-banner"></div>
     <div id="tool-list"></div>
   </div>
 
   <div id="ssub-inventory" style="display:none;">
+    <div id="inv-drive-banner"></div>
     <div id="inv-loc-alert" style="display:none;background:#FFF3CD;border:1px solid #FFD966;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:600;color:#7A5700;align-items:center;gap:7px;cursor:pointer;" onclick="filterMissingLocInv()">
       <span style="font-size:15px;">📍</span><span id="inv-loc-alert-msg"></span>
       <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
@@ -1181,16 +1199,113 @@ async function toSupabase(p) {
   }
 }
 
-// Dual-write wrapper: writes to Supabase (primary) + Google Sheets (backup, silent)
-// Once migration is verified, remove the toSheetLegacy call below
+// Supabase is the sole data destination. Google Sheets is a read-only archive.
 async function toSheet(p) {
-  // Primary: write to Supabase
   toSupabase(p).catch(e => console.warn('Supabase write failed:', e));
-  // Legacy backup: also write to Google Sheets (silent, fire-and-forget)
+}
+
+// ════════════════════════════════════════════════════════════════
+// SUPABASE STORAGE — photo upload
+// ════════════════════════════════════════════════════════════════
+async function uploadToSupabaseStorage(file) {
+  const b64 = await imageFileToJpegB64(file);
+  const ext = 'jpg';
+  const fileName = `photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+  const res = await fetch(WORKER_URL + '/storage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName, contentType: 'image/jpeg', dataBase64: b64 }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.publicUrl;
+}
+
+// ════════════════════════════════════════════════════════════════
+// DRIVE PHOTO MIGRATION — badge tap → replace sheet → upload
+// ════════════════════════════════════════════════════════════════
+let _photoReplaceCtx = null; // { type:'tool'|'supply'|'project', id, linkIndex }
+
+function openPhotoSheet(type, id, linkIndex) {
+  _photoReplaceCtx = { type, id, linkIndex: linkIndex || 0 };
+  const names = { tool: 'tool', supply: 'supply', project: 'project' };
+  $('photo-sheet-sub').textContent = `Take a new photo to replace this Google Drive link on this ${names[type]}.`;
+  $('photo-sheet-status').textContent = '';
+  $('photo-sheet-file').value = '';
+  $('photo-sheet-overlay').classList.add('open');
+}
+
+function closePhotoSheet() {
+  $('photo-sheet-overlay').classList.remove('open');
+  _photoReplaceCtx = null;
+}
+
+async function handlePhotoReplace(ev) {
+  const file = ev.target.files[0];
+  if (!file || !_photoReplaceCtx) return;
+  const stat = $('photo-sheet-status');
+  const { type, id } = _photoReplaceCtx;
+  stat.innerHTML = '<span class="spinner dark"></span> Uploading photo...';
+
   try {
-    const url = SCRIPT_URL + '?' + new URLSearchParams(p).toString();
-    fetch(url, { method:'GET', mode:'cors', cache:'no-store' }).catch(()=>{});
-  } catch(e) { /* silent */ }
+    const publicUrl = await uploadToSupabaseStorage(file);
+
+    if (type === 'tool') {
+      const t = tools.find(x => x.id === id); if (!t) throw new Error('Tool not found');
+      t.driveLink = publicUrl;
+      saveLocal();
+      toSheet({ action:'save', sheet:'Tools', id:t.id, timestamp:new Date(t.ts).toISOString(),
+        category:t.cat, name:t.name, brand:t.brand, model:t.model, serial:t.serial,
+        purchaseDate:t.date, price:t.price, location:t.location, manual:t.manual,
+        condition:t.condition, notes:t.notes, driveLink:publicUrl,
+        hasMaintLog:t.hasMaint?'Yes':'No', maintSchedule:t.maintSchedule });
+      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderToolList();
+
+    } else if (type === 'supply') {
+      const i = inventory.find(x => x.id === id); if (!i) throw new Error('Supply not found');
+      i.driveLink = publicUrl;
+      saveLocal();
+      toSheet({ action:'save', sheet:'Supplies', id:i.id, timestamp:new Date(i.ts).toISOString(),
+        name:i.name, category:i.category, location:i.location, notes:i.notes, driveLink:publicUrl });
+      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderInvList();
+
+    } else if (type === 'project') {
+      const p = projects.find(x => x.id === id); if (!p) throw new Error('Project not found');
+      // Replace the specific Drive link at linkIndex, or add if none
+      const links = p.driveLinks || [p.driveLink].filter(Boolean);
+      const idx = _photoReplaceCtx.linkIndex;
+      if (idx < links.length) links[idx] = publicUrl; else links.push(publicUrl);
+      p.driveLinks = links; p.driveLink = links[0];
+      saveLocal();
+      toSheet({ action:'save', sheet:'Projects', id:p.id, timestamp:new Date(p.ts).toISOString(),
+        name:p.name, description:p.desc, wood:p.wood, dimensions:p.dims, status:p.status,
+        lessons:p.lessons||'', madeFor:p.madeFor, recipient:p.recipient,
+        driveLink:links.join(' | '), tools:p.tools, toolNotes:p.toolNotes,
+        tags:(p.tags||[]).join(', '), notes:p.notes, priority:p.priority||'',
+        sourceUrl:p.sourceUrl||'', nextSteps:p.nextSteps||'' });
+      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderAllPLists();
+    }
+  } catch(e) {
+    stat.textContent = '⚠️ Upload failed: ' + e.message;
+  }
+}
+
+// Count items still with Drive links (tools + supplies + projects)
+function drivePhotoCount() {
+  const isDrive = url => url && url.includes('drive.google.com');
+  const t = tools.filter(x => isDrive(x.driveLink)).length;
+  const s = inventory.filter(x => isDrive(x.driveLink)).length;
+  const p = projects.filter(x => (x.driveLinks||[x.driveLink].filter(Boolean)).some(isDrive)).length;
+  return t + s + p;
+}
+
+function renderDriveBanner(containerId) {
+  const el = $(containerId); if (!el) return;
+  const count = drivePhotoCount();
+  if (count === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="drive-migrate-banner">
+    <span>📎 ${count} item${count>1?'s':''} still have Google Drive photo links</span>
+  </div>`;
 }
 function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
 function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
@@ -1457,7 +1572,7 @@ function updateInvItem(id) {
   const loc=fullLoc('i'), idx=inventory.findIndex(x=>x.id===id); if(idx===-1) return;
   inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
   saveLocal();
-  toSheet({action:'save',sheet:'Supplies',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes});
+  toSheet({action:'save',sheet:'Supplies',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes,driveLink:inventory[idx].driveLink||''});
   showStatus('✅ Item updated!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
   const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
@@ -1727,7 +1842,7 @@ function toggleResFilter(el){
 // ════════════════════════════════════════════════════════════════
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
-function renderAllPLists(){ ['ideas','planned','progress','completed'].forEach(renderPList); }
+function renderAllPLists(){ renderDriveBanner('proj-drive-banner'); ['ideas','planned','progress','completed'].forEach(renderPList); }
 
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2, '': 3 };
 const PRIORITY_BADGE = { High: '🔴 High', Medium: '🟡 Medium', Low: '🟢 Low' };
@@ -1792,7 +1907,21 @@ function renderPList(type){
       ${(type==='progress'&&p.nextSteps)?`<div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;padding:6px 10px;background:rgba(196,119,59,0.08);border-left:3px solid var(--accent);border-radius:4px;">▶ Next: ${p.nextSteps}</div>`:''}
       ${p.sourceUrl?`<a href="${p.sourceUrl}" target="_blank" style="font-size:12px;color:var(--accent);display:inline-block;margin-top:4px;">🔗 Source ↗</a>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
-      ${thumbs.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">${thumbs.map(t=>`<img src="${t}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`).join('')}</div>`:''}
+      ${(()=>{
+        const isDrive = url => url && url.includes('drive.google.com');
+        const driveLinks = allLinks.filter(isDrive);
+        const supaLinks  = allLinks.filter(l => !isDrive(l));
+        const driveBadges = driveLinks.map((l,i) =>
+          `<span class="drive-badge" onclick="openPhotoSheet('project','${p.id}',${allLinks.indexOf(l)})">📎 Drive photo — tap to replace</span>`
+        ).join('');
+        const supaThumbs = supaLinks.map(l =>
+          `<img src="${l}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`
+        ).join('');
+        const driveAsThumb = !supaLinks.length && driveLinks.length
+          ? driveLinks.map(l => { const id=driveId(l); return id?`<img src="https://drive.google.com/thumbnail?id=${id}&sz=w600" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''; }).join('') : '';
+        if (!driveLinks.length && !supaLinks.length) return '';
+        return `<div style="margin-top:9px;">${driveBadges}${supaLinks.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${supaThumbs}</div>`:''}${driveAsThumb?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${driveAsThumb}</div>`:''}</div>`;
+      })()}
       ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
       ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:5px;">${p.notes}</div>`:''}
       ${(()=>{ const linked=resources.filter(r=>r.projectId===p.id); return linked.length?`<div style="margin-top:8px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#F0E8FF;color:#6B3FA0;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}
@@ -2030,9 +2159,17 @@ async function scanToolPhoto(ev){
     if(p.notes)    { $('t-notes').value    = p.notes;    filled++; }
 
     if(filled > 0) {
-      stat.innerHTML=`✅ ${filled} field${filled>1?'s':''} filled — scroll down to review and complete.`;
+      // Store scanned photo for optional save when tool is created
+      window._pendingToolPhoto = { b64, file };
+      stat.innerHTML=`✅ ${filled} field${filled>1?'s':''} filled — scroll down to review and complete.
+        <div style="margin-top:8px;padding:9px 12px;background:#F0FBF0;border:1px solid #A8D5A2;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span style="font-size:12px;font-weight:600;color:#2D6A2D;">💾 Save this photo to the record?</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="window._saveToolPhotoOnCreate=true;this.parentElement.parentElement.style.background='#D4EDDA';this.parentElement.innerHTML='<span style=\\'font-size:12px;color:#2D6A2D;font-weight:600;\\'>✅ Will save with tool</span>'" style="padding:4px 10px;border-radius:6px;border:none;background:#2D6A2D;color:white;font-size:12px;font-weight:600;cursor:pointer;">Yes</button>
+            <button onclick="window._saveToolPhotoOnCreate=false;window._pendingToolPhoto=null;this.parentElement.parentElement.style.display='none'" style="padding:4px 10px;border-radius:6px;border:1px solid #ccc;background:white;color:#666;font-size:12px;cursor:pointer;">No</button>
+          </div>
+        </div>`;
       showStatus('✅ Tool scanned!','ok');
-      // Scroll to the tool details form so user can see the filled fields
       setTimeout(()=>{ const el=$('t-name'); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.borderColor='var(--accent)'; setTimeout(()=>el.style.borderColor='',2500); }}, 300);
     } else {
       stat.innerHTML='⚠️ AI could not identify this tool from the photo. Try a closer shot of the label, then fill in manually.';
@@ -2094,13 +2231,22 @@ function toggleSchedSec(){
   $('t-sched-sec').style.display=$('t-sched-toggle').checked?'block':'none';
 }
 
-function saveTool(){
+async function saveTool(){
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
   const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
   const hasSched=$('t-sched-toggle').checked, schedJson=gv('t-sched-json')||'';
   let maintSchedule='', maintIntervalDays=0;
   if(hasSched&&schedJson){ try{ const p=JSON.parse(schedJson); maintSchedule=schedJson; maintIntervalDays=p.interval_days||0; }catch(e){} }
-  const tool={id:genId(),ts:Date.now(),cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),hasMaint,maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[],maintSchedule,maintIntervalDays};
+  // Upload pending scan photo if user chose to save it
+  let driveLink = gv('t-drive-link');
+  if(window._saveToolPhotoOnCreate && window._pendingToolPhoto) {
+    try {
+      showStatus('⏳ Uploading photo...','');
+      driveLink = await uploadToSupabaseStorage(window._pendingToolPhoto.file);
+    } catch(e) { console.warn('Photo upload failed:', e); }
+    window._pendingToolPhoto = null; window._saveToolPhotoOnCreate = false;
+  }
+  const tool={id:genId(),ts:Date.now(),cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink,hasMaint,maintLog:maintNote?[{date:new Date().toISOString().split('T')[0],note:maintNote}]:[],maintSchedule,maintIntervalDays};
   tools.push(tool); saveLocal();
   toSheet({action:'save',sheet:'Tools',id:tool.id,timestamp:new Date(tool.ts).toISOString(),category:tool.cat,name:tool.name,brand:tool.brand,model:tool.model,serial:tool.serial,purchaseDate:tool.date,price:tool.price,location:tool.location,manual:tool.manual,condition:tool.condition,notes:tool.notes,driveLink:tool.driveLink,hasMaintLog:hasMaint?'Yes':'No',maintSchedule:tool.maintSchedule});
   if(maintNote) toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:tool.id,toolName:tool.name,date:new Date().toISOString().split('T')[0],note:maintNote});
@@ -2116,6 +2262,7 @@ function clearToolForm(){
   $('t-sched-text').innerHTML=''; $('t-sched-interval').textContent='';
   $('t-photo-wrap').style.display='none'; $('t-drive-prev').style.display='none';
   $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML=''; toolFile=null;
+  window._pendingToolPhoto=null; window._saveToolPhotoOnCreate=false;
   // Always reset the save button to its original state
   const saveBtn=document.querySelector('#add-tool-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Tool'; saveBtn.onclick=saveTool; }
@@ -2161,6 +2308,7 @@ function markMaintDone(toolId){
 
 
 function renderToolList(){
+  renderDriveBanner('tool-drive-banner');
   const cont=$('tool-list'), cntEl=$('tool-count');
   const srchEl=document.getElementById('srch-tools');
   const q=(srchEl?.value||'').toLowerCase();
@@ -2253,7 +2401,12 @@ function renderToolList(){
                 </div>`;
               } catch(e){ return ''; }
             })():''}
-            ${thumb?`<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''}
+            ${(()=>{
+              const isDrive = t.driveLink && t.driveLink.includes('drive.google.com');
+              if (isDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('tool','${t.id}')">📎 Drive photo — tap to replace</span>`;
+              if (thumb) return `<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+              return '';
+            })()}
             ${t.hasMaint?`<div style="margin-top:6px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
             ${t.manual?`<a href="${t.manual}" target="_blank" style="font-size:11px;color:var(--accent);margin-top:4px;display:inline-block;">📄 Manual</a>`:''}
             ${(()=>{ const linked=resources.filter(r=>r.toolId===t.id); return linked.length?`<div style="margin-top:7px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#E8F5E3;color:#3A6B2A;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}
@@ -2313,7 +2466,15 @@ async function scanInvPhoto(ev) {
     try { p = JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}'); } catch(e){}
     const filled = fillInvFields(p);
     if (filled > 0) {
-      stat.innerHTML = `✅ ${filled} field${filled>1?'s':''} filled — review and complete below.`;
+      window._pendingInvPhotoFile = file;
+      stat.innerHTML = `✅ ${filled} field${filled>1?'s':''} filled — review and complete below.
+        <div style="margin-top:8px;padding:9px 12px;background:#F0FBF0;border:1px solid #A8D5A2;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span style="font-size:12px;font-weight:600;color:#2D6A2D;">💾 Save this photo to the record?</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="window._saveInvPhotoOnCreate=true;this.parentElement.parentElement.style.background='#D4EDDA';this.parentElement.innerHTML='<span style=\\'font-size:12px;color:#2D6A2D;font-weight:600;\\'>✅ Will save with item</span>'" style="padding:4px 10px;border-radius:6px;border:none;background:#2D6A2D;color:white;font-size:12px;font-weight:600;cursor:pointer;">Yes</button>
+            <button onclick="window._saveInvPhotoOnCreate=false;window._pendingInvPhotoFile=null;this.parentElement.parentElement.style.display='none'" style="padding:4px 10px;border-radius:6px;border:1px solid #ccc;background:white;color:#666;font-size:12px;cursor:pointer;">No</button>
+          </div>
+        </div>`;
       $('i-name').scrollIntoView({ behavior:'smooth', block:'center' });
       $('i-name').style.borderColor = 'var(--accent)';
       setTimeout(() => $('i-name').style.borderColor = '', 2500);
@@ -2365,12 +2526,21 @@ async function scanInvUrl() {
   }
 }
 
-function saveInvItem(){
+async function saveInvItem(){
   const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
   const loc=fullLoc('i');
-  const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
+  let photoUrl = '';
+  if(window._saveInvPhotoOnCreate && window._pendingInvPhotoFile) {
+    try {
+      showStatus('⏳ Uploading photo...','');
+      photoUrl = await uploadToSupabaseStorage(window._pendingInvPhotoFile);
+    } catch(e) { console.warn('Photo upload failed:', e); }
+    window._pendingInvPhotoFile = null; window._saveInvPhotoOnCreate = false;
+  }
+  window._pendingInvPhoto = null;
+  const item={id:genId(),ts:Date.now(),name,category:gv('i-category'),location:loc,notes:gv('i-notes'),driveLink:photoUrl};
   inventory.push(item); saveLocal();
-  toSheet({action:'save',sheet:'Supplies',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes});
+  toSheet({action:'save',sheet:'Supplies',id:item.id,timestamp:new Date(item.ts).toISOString(),name:item.name,category:item.category,location:item.location,notes:item.notes,driveLink:item.driveLink});
   showStatus('✅ Item saved!','ok'); clearInvForm(); showSTab('inventory'); renderInvList(); setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); },100);
 }
 function clearInvForm(){
@@ -2379,11 +2549,13 @@ function clearInvForm(){
   const t3=$('i-third-row'), tc=$('i-craftsman-row');
   if(t3) t3.style.display='none'; if(tc) tc.style.display='none';
   const stat=$('i-scan-status'); if(stat) stat.innerHTML='';
+  window._pendingInvPhotoFile=null; window._saveInvPhotoOnCreate=false;
   const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
   applyLocLock(); // re-apply location lock for next item
 }
 function renderInvList(){
+  renderDriveBanner('inv-drive-banner');
   const cont=$('inv-list'), cntEl=$('inv-count');
   const catIconI={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
   const srchEl=document.getElementById('srch-inv');
@@ -2433,6 +2605,7 @@ function renderInvList(){
             </div>
           </div>
           <div class="item-meta">${i.location?'📍 '+i.location:locBadge}${i.notes?'<br>'+i.notes:''}</div>
+          ${(i.driveLink&&i.driveLink.includes('drive.google.com'))?`<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('supply','${i.id}')">📎 Drive photo — tap to replace</span>`:''}
         </div>
       </div>`;}).join('')}
     </div>`).join('');
@@ -3161,5 +3334,17 @@ async function migrateFromSheets() {
 
 startupSync();
 </script>
+
+<!-- PHOTO REPLACE SHEET -->
+<div class="photo-sheet-overlay" id="photo-sheet-overlay" onclick="if(event.target===this)closePhotoSheet()">
+  <div class="photo-sheet">
+    <div class="photo-sheet-title">📎 Replace Drive Photo</div>
+    <div class="photo-sheet-sub" id="photo-sheet-sub">Take a new photo to replace this Google Drive link.</div>
+    <input type="file" id="photo-sheet-file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoReplace(event)">
+    <button class="photo-sheet-btn primary" onclick="document.getElementById('photo-sheet-file').click()">📷 Take / Choose Photo</button>
+    <button class="photo-sheet-btn cancel" onclick="closePhotoSheet()">✕ Cancel</button>
+    <div id="photo-sheet-status" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;"></div>
+  </div>
+</div>
 </body>
 </html>
