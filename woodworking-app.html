@@ -1931,10 +1931,10 @@ function renderPList(type){
           `<span class="drive-badge" onclick="openPhotoSheet('project','${p.id}',${allLinks.indexOf(l)})">📎 Drive photo — tap to replace</span>`
         ).join('');
         const supaThumbs = supaLinks.map(l =>
-          `<img src="${l}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`
+          `<img src="${l}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${l}')" onerror="this.style.display='none'">`
         ).join('');
         const driveAsThumb = !supaLinks.length && driveLinks.length
-          ? driveLinks.map(l => { const id=driveId(l); return id?`<img src="https://drive.google.com/thumbnail?id=${id}&sz=w600" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`:''; }).join('') : '';
+          ? driveLinks.map(l => { const id=driveId(l); return id?`<img src="https://drive.google.com/thumbnail?id=${id}&sz=w600" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('https://drive.google.com/thumbnail?id=${id}&sz=w1200')" onerror="this.style.display='none'">`:''; }).join('') : '';
         if (!driveLinks.length && !supaLinks.length) return '';
         return `<div style="margin-top:9px;">${driveBadges}${supaLinks.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${supaThumbs}</div>`:''}${driveAsThumb?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${driveAsThumb}</div>`:''}</div>`;
       })()}
@@ -2451,7 +2451,7 @@ function renderToolList(){
             ${(()=>{
               const isDrive = t.driveLink && t.driveLink.includes('drive.google.com');
               if (isDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('tool','${t.id}')">📎 Drive photo — tap to replace</span>`;
-              if (thumb) return `<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+              if (thumb) return `<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${thumb}')" onerror="this.style.display='none'">`;
               return '';
             })()}
             ${t.hasMaint?`<div style="margin-top:6px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
@@ -2655,7 +2655,7 @@ function renderInvList(){
           ${(()=>{
               const iDrive = i.driveLink && i.driveLink.includes('drive.google.com');
               if (iDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('supply','${i.id}')">📎 Drive photo — tap to replace</span>`;
-              if (i.driveLink) return `<img src="${i.driveLink}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+              if (i.driveLink) return `<img src="${i.driveLink}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${i.driveLink}')" onerror="this.style.display='none'">`;
               return '';
             })()}
         </div>
@@ -3400,5 +3400,15 @@ startupSync();
     <div id="photo-sheet-status" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;"></div>
   </div>
 </div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:1000;align-items:center;justify-content:center;padding:16px;" onclick="closeLightbox()">
+  <img id="lightbox-img" style="max-width:100%;max-height:90vh;border-radius:8px;object-fit:contain;" src="">
+  <button style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:white;font-size:22px;width:40px;height:40px;border-radius:50%;cursor:pointer;" onclick="closeLightbox()">✕</button>
+</div>
+<script>
+function openLightbox(src){ const o=$('lightbox-overlay'),i=$('lightbox-img'); i.src=src; o.style.display='flex'; }
+function closeLightbox(){ const o=$('lightbox-overlay'); o.style.display='none'; $('lightbox-img').src=''; }
+</script>
 </body>
 </html>
