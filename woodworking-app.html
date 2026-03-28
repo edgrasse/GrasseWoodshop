@@ -3340,8 +3340,8 @@ startupSync();
   <div class="photo-sheet">
     <div class="photo-sheet-title">📎 Replace Drive Photo</div>
     <div class="photo-sheet-sub" id="photo-sheet-sub">Take a new photo to replace this Google Drive link.</div>
-    <input type="file" id="photo-sheet-file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoReplace(event)">
-    <button class="photo-sheet-btn primary" onclick="document.getElementById('photo-sheet-file').click()">📷 Take / Choose Photo</button>
+    <input type="file" id="photo-sheet-file" accept="image/*" style="display:none" onchange="handlePhotoReplace(event)">
+    <button class="photo-sheet-btn primary" onclick="document.getElementById('photo-sheet-file').click()">📷 Take or Choose Photo</button>
     <button class="photo-sheet-btn cancel" onclick="closePhotoSheet()">✕ Cancel</button>
     <div id="photo-sheet-status" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;"></div>
   </div>
