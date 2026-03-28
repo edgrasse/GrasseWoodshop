@@ -435,15 +435,12 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         </div>
         <input type="file" id="p-photo-input" accept="image/*" multiple style="display:none" onchange="onProjPhotos(event)">
         <div id="p-photo-grid" class="photo-grid"></div>
-        <div id="p-drive-save-row" style="display:none;margin-top:8px;">
-          <button class="btn btn-blue btn-sm" onclick="shareProjPhotos()">💾 Save Photos to Drive</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:6px;">Then paste links below</span>
-        </div>
+        <div id="p-photo-upload-status" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
         <div class="drive-sec">
-          <div class="drive-lbl">Google Drive links</div>
+          <div class="drive-lbl">Photo links (optional — paste existing Supabase or Drive URLs)</div>
           <div id="p-drive-links-container">
             <div class="drive-link-row-wrap" style="margin-bottom:6px;">
-              <input type="url" class="p-drive-link-input" placeholder="https://drive.google.com/..." oninput="refreshDrivePreviews()">
+              <input type="url" class="p-drive-link-input" placeholder="https://..." oninput="refreshDrivePreviews()">
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="addDriveLinkField()">+ Add Another Photo Link</button>
@@ -1804,10 +1801,8 @@ async function renderProjGrid(){
     const url=await f2url(projFiles[i]); const w=document.createElement('div'); w.className='thumb-wrap';
     w.innerHTML=`<img src="${url}"><button class="thumb-rm" onclick="removeProjPhoto(${i})">✕</button>`; g.appendChild(w);
   }
-  $('p-drive-save-row').style.display=projFiles.length?'block':'none';
 }
 function removeProjPhoto(i){ projFiles.splice(i,1); renderProjGrid(); }
-function shareProjPhotos(){ if(navigator.share&&projFiles.length) navigator.share({files:projFiles,title:'Project Photo',text:'Save to Grasse Workshop → Projects in Google Drive'}).catch(()=>{}); else showStatus('📱 Use your Files app to move photos to Google Drive','',4000); }
 
 // ════════════════════════════════════════════════════════════════
 // TOOL PHOTO
@@ -1980,8 +1975,35 @@ function editProject(id){
 // ════════════════════════════════════════════════════════════════
 // SAVE PROJECT
 // ════════════════════════════════════════════════════════════════
-function saveProject(){
+async function saveProject(){
   const name=gv('p-name'); if(!name){ showStatus('⚠️ Please enter a project name','err'); return; }
+  // Upload any staged photos to Supabase Storage first
+  if(projFiles.length) {
+    const stat=$('p-photo-upload-status');
+    if(stat) stat.innerHTML='<span class="spinner dark"></span> Uploading photos...';
+    try {
+      const uploaded = await Promise.all(projFiles.map(f => uploadToSupabaseStorage(f)));
+      // Inject uploaded URLs into the link inputs
+      uploaded.forEach(url => {
+        const empty = Array.from(document.querySelectorAll('.p-drive-link-input')).find(el => !el.value.trim());
+        if(empty) { empty.value = url; }
+        else {
+          const container = $('p-drive-links-container');
+          const wrap = document.createElement('div');
+          wrap.className = 'drive-link-row-wrap';
+          wrap.style.marginBottom = '6px';
+          wrap.innerHTML = `<input type="url" class="p-drive-link-input" value="${url}" style="flex:1;" oninput="refreshDrivePreviews()">`;
+          container.appendChild(wrap);
+        }
+      });
+      projFiles = [];
+      if(stat) stat.innerHTML = '';
+      await renderProjGrid();
+    } catch(e) {
+      if(stat) stat.textContent = '⚠️ Photo upload failed: ' + e.message;
+      return;
+    }
+  }
   if(gv('p-status')==='Completed'&&!gv('p-lessons')){ pendingProj=collectProj(); $('lessons-modal').style.display='flex'; return; }
   commitProj(collectProj());
 }
@@ -2024,9 +2046,10 @@ function clearProjForm(){
   $('p-lessons-row').style.display='none'; $('p-recip-row').style.display='none';
   if($('p-next-steps-row')) $('p-next-steps-row').style.display='none';
   $('p-drive-previews') && ($('p-drive-previews').innerHTML='');
-  // Reset drive links to just one empty field
+  const stat=$('p-photo-upload-status'); if(stat) stat.innerHTML='';
+  // Reset photo links to just one empty field
   const dlc = $('p-drive-links-container');
-  if(dlc){ dlc.innerHTML='<div class="drive-link-row-wrap" style="margin-bottom:6px;"><input type="url" class="p-drive-link-input" placeholder="https://drive.google.com/..." oninput="refreshDrivePreviews()"></div>'; }
+  if(dlc){ dlc.innerHTML='<div class="drive-link-row-wrap" style="margin-bottom:6px;"><input type="url" class="p-drive-link-input" placeholder="https://..." oninput="refreshDrivePreviews()"></div>'; }
   document.querySelectorAll('#tech-tags .tag-chip').forEach(c=>c.classList.remove('selected'));
   $('pform-title').textContent='📋 Add Project';
   // Reset tools section to hidden
@@ -3075,15 +3098,17 @@ const FAQ_DATA = [
     a: `Tap <strong>Shop</strong> → <strong>➕ Add New</strong> → tap <strong>📦 Add Supply</strong> at the top to switch to the supply form. Fill in the name, category, location, and any notes. Tap <strong>💾 Save Item</strong>.`
   },
 
-  { section: '📸 Photos & Google Drive' },
+  { section: '📸 Photos' },
   {
     q: 'How do I add a photo to a project or tool?',
-    a: `<strong>Step 1:</strong> Take or select the photo inside the app using the 📷 area.<br><strong>Step 2:</strong> Tap <strong>💾 Save Photos to Drive</strong> — this opens your iPhone Share Sheet so you can save to Google Drive.<br><strong>Step 3:</strong> Open the Google Drive app, find the photo in your <em>Grasse Workshop → Projects</em> (or Tools) folder, tap the three dots, and tap <strong>Share → Copy Link</strong>.<br><strong>Step 4:</strong> Paste the link into the <em>Google Drive link</em> field in the app.<br><br>
-    <div class="faq-tip">💡 Make sure your Grasse Workshop folder in Drive is set to "Anyone with the link can view" so photos display as previews in the app.</div>`
+    a: `Photos now upload directly to the app — no Google Drive needed.<br><br>
+    <strong>For projects:</strong> In the Add/Edit Project form, tap the 📷 area to take a photo or choose from your library. When you tap <strong>💾 Save Project</strong>, your photos upload automatically to Supabase Storage and attach to the project.<br><br>
+    <strong>For tools:</strong> Use the <strong>📷 Scan Tool Label</strong> area at the top of the Add Tool form. After scanning, tap <strong>Yes</strong> when asked to save the photo to the record.<br><br>
+    <strong>Replacing old Drive photos:</strong> Any card with a legacy Google Drive photo shows a <strong>📎 Drive photo — tap to replace</strong> badge. Tap it, choose a photo, and it uploads automatically.`
   },
   {
-    q: 'Why isn\'t my photo showing as a preview in the app?',
-    a: `Two common causes:<ul><li>The Google Drive folder isn't set to "Anyone with the link can view" — open Drive, right-click the Grasse Workshop folder → Share → change Restricted to Anyone with the link → Viewer.</li><li>The link was copied before the photo finished uploading — wait a moment and copy the link again.</li></ul>`
+    q: 'Why isn\'t my photo showing as a preview?',
+    a: `If you see a broken image, it\'s likely a legacy Google Drive link. Tap the <strong>📎 Drive photo — tap to replace</strong> badge on the card to replace it with a directly-hosted photo. New photos uploaded through the app will always display correctly.`
   },
 
   { section: '📚 Resources' },
