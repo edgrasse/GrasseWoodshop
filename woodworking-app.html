@@ -949,6 +949,7 @@ let pendingProj = null, projFiles = [], toolFile = null;
 let chatB64 = null, chatMime = null;
 let toolViewCompact = false;
 let invViewCompact  = false;
+let activeInvCat     = 'All';
 let activeCatFilters = new Set(); // active tool category filters
 
 // ════════════════════════════════════════════════════════════════
@@ -2505,6 +2506,7 @@ function renderInvList(){
   if(invViewCompact){
     let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q));
     if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
+    if(activeInvCat!=='All') list=list.filter(i=>(i.category||'Miscellaneous')===activeInvCat);
     cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
     if(!list.length){ cont.innerHTML=missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match.</p></div>'; return; }
     cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(i=>{
