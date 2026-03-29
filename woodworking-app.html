@@ -323,19 +323,20 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 <!-- ═══════════════════════ PROJECTS ═══════════════════════ -->
 <div class="section active" id="section-projects">
   <div id="sync-banner-projects"></div>
-  <div class="sub-tabs">
-    <button class="sub-tab active" onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
-    <button class="sub-tab"        onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
-    <button class="sub-tab"        onclick="showPTab('ideas')"     id="ptab-ideas">💡 Ideas</button>
-    <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
-    <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
+  <div id="proj-stats-card" style="margin-bottom:10px;"></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div class="sub-tabs" style="flex:1;margin-bottom:0;">
+      <button class="sub-tab active" onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
+      <button class="sub-tab"        onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
+      <button class="sub-tab"        onclick="showPTab('ideas')"     id="ptab-ideas">💡 Ideas</button>
+      <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
+      <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
+    </div>
+    <button id="proj-compact-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;flex-shrink:0;" onclick="toggleProjView(activePTab)">☰</button>
   </div>
   <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists();if(!this.value.trim()){const el=$('psub-search');if(el)el.style.display='none';showPTab(activePTab);}"></div>
 
   <div id="psub-planned" style="display:none;">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button id="proj-view-btn-planned" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('planned')">☰ Compact</button>
-    </div>
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="planned" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="planned" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -345,9 +346,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-ideas" style="display:none;">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button id="proj-view-btn-ideas" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('ideas')">☰ Compact</button>
-    </div>
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="ideas" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="ideas" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -357,9 +355,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-progress" style="display:block;">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button id="proj-view-btn-progress" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('progress')">☰ Compact</button>
-    </div>
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="progress" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="progress" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -369,9 +364,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-completed" style="display:none;">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button id="proj-view-btn-completed" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('completed')">☰ Compact</button>
-    </div>
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="completed" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="completed" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -623,22 +615,20 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         <div class="form-row"><label>Notes</label><textarea id="t-notes" placeholder="Accessories, quirks, details..."></textarea></div>
         <div class="form-row">
           <label>Tool Photo</label>
-          <div class="photo-upload-area" onclick="document.getElementById('t-photo-input').click()">
-            <div class="pu-icon">📷</div><p>Tap to take photo or choose from library</p>
+          <div id="t-existing-photo-wrap" style="display:none;margin-bottom:8px;">
+            <img id="t-existing-photo-prev" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="if(this.src)openLightbox(this.src)">
+            <button class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%;" onclick="document.getElementById('t-photo-input').click()">📷 Replace Photo</button>
+          </div>
+          <div id="t-upload-area-wrap">
+            <div class="photo-upload-area" onclick="document.getElementById('t-photo-input').click()">
+              <div class="pu-icon">📷</div><p>Tap to take photo or choose from library</p>
+            </div>
           </div>
           <input type="file" id="t-photo-input" accept="image/*" style="display:none" onchange="onToolPhoto(event)">
           <div id="t-photo-wrap" style="display:none;margin-top:10px;">
             <img id="t-photo-prev" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="if(this.src)openLightbox(this.src)">
-            <div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
-              <button class="btn btn-blue btn-sm" onclick="shareToolPhoto()">💾 Save to Drive</button>
-              <span style="font-size:11px;color:var(--muted);">Then paste link below</span>
-            </div>
           </div>
-          <div class="drive-sec">
-            <div class="drive-lbl">Google Drive link</div>
-            <input type="url" id="t-drive-link" placeholder="https://drive.google.com/..." oninput="onDriveLink('t')">
-            <img id="t-drive-prev" class="drive-prev" style="display:none;cursor:pointer;" onclick="if(this.src)openLightbox(this.src)">
-          </div>
+          <input type="hidden" id="t-drive-link">
         </div>
         <div class="toggle-row">
           <input type="checkbox" id="t-maint-toggle" onchange="toggleMaintSec()">
@@ -670,6 +660,10 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div id="add-inv-form" style="display:none;">
       <div class="card">
         <div class="card-title">📦 Add Supply Item</div>
+        <div id="i-existing-photo-wrap" style="display:none;margin-bottom:10px;">
+          <img id="i-existing-photo-prev" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;margin-bottom:6px;" onclick="if(this.src)openLightbox(this.src)">
+          <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="document.getElementById('i-scan-file').click()">📷 Replace Photo</button>
+        </div>
 
         <!-- AI SCAN SECTION -->
         <div class="card" style="background:var(--warm);border:1.5px dashed var(--accent);margin-bottom:13px;">
@@ -936,7 +930,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 // ════════════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════════════
-const SCRIPT_URL    = "https://script.google.com/macros/s/AKfycby83e0AXHphq8hPTB2rOWVGedpBq9zrNi083BvmdmXqRZzll7ccS1HenCy9JZ-D_guN/exec";
 const WORKER_URL    = "https://egcw-proxy.ed-53c.workers.dev";
 const SUPABASE_URL  = "https://boousgzchnrrhrlyhday.supabase.co"; // proxied through Worker
 const STORAGE_KEY   = 'egcw_v5'; // bumped to clear duplicate data from previous builds
@@ -957,34 +950,6 @@ let invViewCompact  = false;
 let activeInvCat     = 'All';
 let activePTab       = 'progress';
 let activeCatFilters = new Set(); // active tool category filters
-
-// ════════════════════════════════════════════════════════════════
-// DATA MIGRATION — recovers data from any previous key name
-// ════════════════════════════════════════════════════════════════
-function migrateOldData() {
-  const oldKeys = [
-    { tools:'woodshop_tools',    projects:'woodshop_projects' },
-    { tools:'gw_tools',          projects:'gw_projects', inv:'gw_inv', ctags:'gw_ctags' },
-    { tools:'egcw_tools',        projects:'egcw_projects', inv:'egcw_inv', ctags:'egcw_ctags' },
-  ];
-  let migrated = false;
-  for (const k of oldKeys) {
-    const oldTools    = localStorage.getItem(k.tools);
-    const oldProjects = localStorage.getItem(k.projects);
-    const oldInv      = k.inv  ? localStorage.getItem(k.inv)   : null;
-    const oldCtags    = k.ctags? localStorage.getItem(k.ctags) : null;
-    if (oldTools || oldProjects) {
-      if (oldTools    && !tools.length)     { try { const d=JSON.parse(oldTools);     if(d.length){ tools=d;     migrated=true; }} catch(e){} }
-      if (oldProjects && !projects.length)  { try { const d=JSON.parse(oldProjects);  if(d.length){ projects=d;  migrated=true; }} catch(e){} }
-      if (oldInv      && !inventory.length) { try { const d=JSON.parse(oldInv);       if(d.length){ inventory=d; migrated=true; }} catch(e){} }
-      if (oldCtags    && !customTags.length){ try { const d=JSON.parse(oldCtags);     if(d.length){ customTags=d; }} catch(e){} }
-    }
-  }
-  if (migrated) {
-    saveLocal();
-    showStatus('✅ Recovered your saved data!', 'ok', 3500);
-  }
-}
 
 // ════════════════════════════════════════════════════════════════
 // LOCAL STORAGE
@@ -1114,6 +1079,7 @@ async function syncFromSupabase() {
     saveLocal();
     showSyncBanners('done');
     renderAll();
+    checkMaintNotifications();
   } catch(e) {
     showSyncBanners('error');
   }
@@ -1320,10 +1286,27 @@ function cardMenuById(id, type, btnEl) {
 
 function menuItemsFor(id, type) {
   const items = [
-    { icon:'✏️', label:'Edit',   action:`editItem('${id}','${type}')` },
-    '---',
-    { icon:'🗑️', label:'Delete', action:`deleteItem('${id}','${type}')`, danger:true }
+    { icon:'✏️', label:'Edit', action:`editItem('${id}','${type}')` },
   ];
+  if(type==='project'){
+    const p=projects.find(x=>x.id===id);
+    if(p){
+      items.push('---');
+      if(p.status==='Idea')        items.push({ icon:'📋', label:'Promote to Planned',  action:`moveProject('${id}','Planned')` });
+      if(p.status==='Planned')     items.push({ icon:'▶',  label:'Start Project',       action:`moveProject('${id}','In Progress')` });
+      if(p.status==='In Progress') items.push({ icon:'✅', label:'Mark Complete',        action:`moveProject('${id}','Completed')` });
+      if(p.status!=='Idea')        items.push({ icon:'💡', label:'Move to Ideas',        action:`moveProject('${id}','Idea')` });
+    }
+  }
+  if(type==='tool'){
+    const t=tools.find(x=>x.id===id);
+    if(t&&t.hasMaint){
+      items.push('---');
+      items.push({ icon:'🔧', label:'Log Maintenance', action:`quickLogMaint('${id}')` });
+    }
+  }
+  items.push('---');
+  items.push({ icon:'🗑️', label:'Delete', action:`deleteItem('${id}','${type}')`, danger:true });
   return items;
 }
 
@@ -1428,7 +1411,16 @@ function editTool(id) {
   $('t-location').value = baseVal; onLocChg('t');
   if(baseVal==='Third Shop Bench - Drawer')    $('t-third').value    = locBase.replace('Third Shop Bench – ','');
   if(baseVal==='Craftsman Shop Bench - Drawer') $('t-craftsman').value = locBase.replace('Craftsman Shop Bench – ','');
-  if(t.driveLink) onDriveLink('t');
+  // Show existing photo if present
+  const existWrap=$('t-existing-photo-wrap'), upWrap=$('t-upload-area-wrap');
+  if(t.driveLink){
+    $('t-existing-photo-prev').src=t.driveLink;
+    if(existWrap) existWrap.style.display='block';
+    if(upWrap) upWrap.style.display='none';
+  } else {
+    if(existWrap) existWrap.style.display='none';
+    if(upWrap) upWrap.style.display='block';
+  }
   // Load maintenance schedule if present
   const hasSched=!!(t.maintSchedule);
   $('t-sched-toggle').checked=hasSched;
@@ -1452,7 +1444,7 @@ function editTool(id) {
   showStatus('✏️ Editing — make changes and tap Update Tool','',3500);
 }
 
-function updateTool(id) {
+async function updateTool(id) {
   const name=gv('t-name'); if(!name){showStatus('⚠️ Enter a tool name','err');return;}
   const hasMaint=$('t-maint-toggle').checked, maintNote=hasMaint?gv('t-maint-note'):'', loc=fullLoc('t');
   const hasSched=$('t-sched-toggle').checked, schedJson=gv('t-sched-json')||'';
@@ -1461,7 +1453,12 @@ function updateTool(id) {
   let maintSchedule=existing.maintSchedule||'', maintIntervalDays=existing.maintIntervalDays||0;
   if(hasSched&&schedJson){ try{ const p=JSON.parse(schedJson); maintSchedule=schedJson; maintIntervalDays=p.interval_days||0; }catch(e){} }
   if(!hasSched){ maintSchedule=''; maintIntervalDays=0; }
-  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink:gv('t-drive-link'),maintSchedule,maintIntervalDays};
+  let driveLink = existing.driveLink||'';
+  if(window._saveToolPhotoOnCreate && window._pendingToolPhotoFile){
+    try{ showStatus('⏳ Uploading photo...',''); driveLink=await uploadToSupabaseStorage(window._pendingToolPhotoFile); }catch(e){ console.warn('Photo upload failed:',e); }
+    window._pendingToolPhotoFile=null; window._saveToolPhotoOnCreate=false;
+  }
+  tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink,maintSchedule,maintIntervalDays};
   if(hasMaint&&maintNote){ if(!tools[idx].maintLog) tools[idx].maintLog=[]; tools[idx].maintLog.push({date:new Date().toISOString().split('T')[0],note:maintNote}); }
   saveLocal();
   toSheet({action:'save',sheet:'Tools',id,timestamp:new Date(tools[idx].ts).toISOString(),category:tools[idx].cat,name:tools[idx].name,brand:tools[idx].brand,model:tools[idx].model,serial:tools[idx].serial,location:tools[idx].location,condition:tools[idx].condition,notes:tools[idx].notes,driveLink:tools[idx].driveLink,hasMaintLog:tools[idx].hasMaint?'Yes':'No',maintSchedule:tools[idx].maintSchedule});
@@ -1484,6 +1481,12 @@ function editInvItem(id) {
   $('i-location').value=baseVal; onLocChg('i');
   if(baseVal==='Third Shop Bench - Drawer')    $('i-third').value    = locBase.replace('Third Shop Bench – ','');
   if(baseVal==='Craftsman Shop Bench - Drawer') $('i-craftsman').value = locBase.replace('Craftsman Shop Bench – ','');
+  // Show existing photo with replace option
+  const iphWrap=$('i-existing-photo-wrap');
+  if(iphWrap){
+    if(item.driveLink){ $('i-existing-photo-prev').src=item.driveLink; iphWrap.style.display='block'; }
+    else { iphWrap.style.display='none'; }
+  }
   const saveBtn=document.querySelector('#add-inv-form .btn-primary.btn-full');
   if(saveBtn){ saveBtn.textContent='💾 Update Item'; saveBtn.onclick=()=>updateInvItem(id); }
   $('i-name').scrollIntoView({behavior:'smooth',block:'center'});
@@ -1743,7 +1746,7 @@ function removeProjPhoto(i){ projFiles.splice(i,1); renderProjGrid(); }
 // ════════════════════════════════════════════════════════════════
 // TOOL PHOTO
 // ════════════════════════════════════════════════════════════════
-async function onToolPhoto(ev){ toolFile=ev.target.files[0]; if(!toolFile) return; $('t-photo-prev').src=await f2url(toolFile); $('t-photo-wrap').style.display='block'; }
+async function onToolPhoto(ev){ toolFile=ev.target.files[0]; if(!toolFile) return; $('t-photo-prev').src=await f2url(toolFile); $('t-photo-wrap').style.display='block'; const ew=$('t-existing-photo-wrap'); if(ew) ew.style.display='none'; const uw=$('t-upload-area-wrap'); if(uw) uw.style.display='none'; window._pendingToolPhotoFile=toolFile; window._saveToolPhotoOnCreate=true; }
 function shareToolPhoto(){ if(!toolFile) return; if(navigator.share) navigator.share({files:[toolFile],title:'Tool Photo',text:'Save to Grasse Workshop → Tools in Google Drive'}).catch(()=>{}); else showStatus('📱 Use your Files app to move the photo to Google Drive','',4000); }
 
 // ════════════════════════════════════════════════════════════════
@@ -1773,7 +1776,32 @@ function toggleResFilter(el){
 // ════════════════════════════════════════════════════════════════
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
+function renderProjStats(){
+  const el=$('proj-stats-card'); if(!el) return;
+  if(!projects.length){ el.innerHTML=''; return; }
+  const inProg=projects.filter(p=>p.status==='In Progress').length;
+  const planned=projects.filter(p=>p.status==='Planned').length;
+  const ideas=projects.filter(p=>p.status==='Idea').length;
+  const done=projects.filter(p=>p.status==='Completed').length;
+  const gifts=projects.filter(p=>p.madeFor==='Other').length;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:2px;">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Playfair Display',serif;">${done}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;">Completed</div>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#946A00;font-family:'Playfair Display',serif;">${inProg}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;">In Progress</div>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-size:22px;font-weight:700;color:#6B3FA0;font-family:'Playfair Display',serif;">${planned+ideas}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;">In the Queue</div>
+    </div>
+  </div>
+  ${gifts?`<div style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;">🎁 ${gifts} gift project${gifts>1?'s':''} · ${projects.length} total</div>`:`<div style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;">${projects.length} total projects</div>`}`;
+}
 function renderAllPLists(){
+  renderProjStats();
   const q=(document.getElementById('srch-projects')?.value||'').trim();
   if(q){
     // Unified search view — hide all tab panes, show single results div
@@ -2292,7 +2320,7 @@ function clearToolForm(){
   $('t-sched-toggle').checked=false; $('t-sched-sec').style.display='none';
   $('t-sched-json').value=''; $('t-sched-saved').style.display='none';
   $('t-sched-text').innerHTML=''; $('t-sched-interval').textContent='';
-  $('t-photo-wrap').style.display='none'; $('t-drive-prev').style.display='none';
+  $('t-photo-wrap').style.display='none'; const ew=$('t-existing-photo-wrap'); if(ew){ew.style.display='none';$('t-existing-photo-prev').src='';} const uw=$('t-upload-area-wrap'); if(uw) uw.style.display='block';
   $('maint-tip-result').innerHTML=''; $('scan-status').innerHTML=''; toolFile=null;
   window._pendingToolPhoto=null; window._saveToolPhotoOnCreate=false;
   // Always reset the save button to its original state
@@ -2443,6 +2471,21 @@ function renderToolList(){
     </div>`).join('');
 }
 function togMaint(id,hdr){ const b=$(id),ch=hdr.querySelector('.chevron'),open=b.style.display!=='none'; b.style.display=open?'none':'block'; ch.classList.toggle('open',!open); }
+function quickLogMaint(toolId){
+  const t=tools.find(x=>x.id===toolId); if(!t) return;
+  const note=prompt('Maintenance note for '+t.name+':'); if(!note) return;
+  const today=new Date().toISOString().split('T')[0];
+  if(!t.maintLog) t.maintLog=[];
+  t.maintLog.push({date:today,note});
+  t.hasMaint=true;
+  // Reset maintenance interval
+  const s=maintDueStatus(t);
+  if(s==='due'||s==='soon'){ t.lastMaintDate=today; }
+  saveLocal();
+  toSheet({action:'save',sheet:'Maintenance',id:genId(),toolId:t.id,toolName:t.name,date:today,note});
+  showStatus('✅ Maintenance logged!','ok');
+  renderToolList();
+}
 function addMaintEntry(toolId){
   const note=prompt('Enter maintenance note:'); if(!note) return;
   const today=new Date().toISOString().split('T')[0], t=tools.find(x=>x.id===toolId); if(!t) return;
@@ -2573,6 +2616,7 @@ async function saveInvItem(){
 function clearInvForm(){
   ['i-name','i-notes','i-scan-url'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('i-category').value='Fasteners'; $('i-location').value='';
+  const iph=$('i-existing-photo-wrap'); if(iph){ iph.style.display='none'; $('i-existing-photo-prev').src=''; }
   const t3=$('i-third-row'), tc=$('i-craftsman-row');
   if(t3) t3.style.display='none'; if(tc) tc.style.display='none';
   const stat=$('i-scan-status'); if(stat) stat.innerHTML='';
@@ -2953,6 +2997,13 @@ function buildSystemPrompt(){
   const resSum=resources.length
     ? resources.slice(0,15).map(r=>`[${r.type}] ${r.title}${r.url?' — '+r.url:''}`).join('\n')
     : 'No resources saved yet';
+  const supSum=inventory.length
+    ? inventory.map(i=>`${i.name}${i.category?' ('+i.category+')':''}${i.location?' @ '+i.location:''}`).join(', ')
+    : 'No supplies inventoried yet';
+  const dueToolsList=tools.filter(t=>{ const s=maintDueStatus(t); return s==='due'||s==='soon'; });
+  const maintSum=dueToolsList.length
+    ? dueToolsList.map(t=>{ const s=maintDueStatus(t); return t.name+' — '+(s==='due'?'OVERDUE':'due soon'); }).join(', ')
+    : 'All tools up to date';
 
   let sys=`You are an expert woodworking advisor for Ed Grasse of EG Custom Woodworking, an intermediate woodworker.
 
@@ -2962,11 +3013,17 @@ ${toolSum}
 JIGS (custom shop-made fixtures — recommend these when applicable):
 ${jigsText}
 
+SUPPLIES & CONSUMABLES:
+${supSum}
+
 PROJECT HISTORY:
 ${projSum}
 
 SAVED RESOURCES (reference these when relevant):
 ${resSum}
+
+MAINTENANCE STATUS:
+${maintSum}
 
 SKILL LEVEL: Intermediate — understands joinery, reads plans, operates shop tools safely.
 Be practical, specific, concise. Use bullet points for steps.`;
@@ -3244,7 +3301,6 @@ function toggleFAQ(idx) {
 })();
 
 loadLocal();
-migrateOldData();
 setAddType('tool');
 rebuildCustomTags();
 renderToolChips();
@@ -3256,120 +3312,34 @@ renderFAQ();
 // ════════════════════════════════════════════════════════════════
 // STARTUP — sync from Supabase, with one-time auto-migration from Sheets
 // ════════════════════════════════════════════════════════════════
-async function startupSync() {
-  // First: try Supabase
-  try {
-    const probe = await fetch(WORKER_URL + '/supabase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'select', table: 'tools' })
-    }).then(r => r.json());
-
-    const supabaseHasData = Array.isArray(probe) && probe.length > 0;
-
-    if (!supabaseHasData) {
-      // Supabase tables are empty — run one-time migration from Google Sheets
-      console.log('Supabase empty — running one-time migration from Google Sheets...');
-      showSyncBanners('migrating');
-      await migrateFromSheets();
+async function checkMaintNotifications(){
+  const due=tools.filter(t=>maintDueStatus(t)==='due');
+  const soon=tools.filter(t=>maintDueStatus(t)==='soon');
+  if(!due.length&&!soon.length) return;
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='denied') return;
+  const send=()=>{
+    if(due.length){
+      new Notification('🔧 EG Custom Woodworking', {
+        body: due.map(t=>t.name).join(', ')+(due.length===1?' is':' are')+' overdue for maintenance',
+        icon:'/GrasseWoodshop/icon-192.png', tag:'maint-due'
+      });
+    } else if(soon.length){
+      new Notification('🔧 EG Custom Woodworking', {
+        body: soon.map(t=>t.name).join(', ')+(soon.length===1?' is':' are')+' due for maintenance soon',
+        icon:'/GrasseWoodshop/icon-192.png', tag:'maint-soon'
+      });
     }
-
-    // Now sync from Supabase as normal
+  };
+  if(Notification.permission==='granted'){ send(); }
+  else { Notification.requestPermission().then(p=>{ if(p==='granted') send(); }); }
+}
+async function startupSync() {
+  try {
     await syncFromSupabase();
   } catch(e) {
-    console.warn('Supabase startup check failed:', e);
-    // Fall back to Google Sheets if Supabase is completely unreachable
+    console.warn('Supabase startup sync failed:', e);
     showSyncBanners('error');
-  }
-}
-
-async function migrateFromSheets() {
-  try {
-    const ts = Date.now();
-    const res = await fetch(SCRIPT_URL + '?action=sync&_=' + ts, { mode:'cors', cache:'no-store' });
-    const all = await res.json();
-
-    const writes = [];
-
-    // Projects
-    if (all.Projects?.length) {
-      all.Projects.forEach(o => {
-        writes.push(fetch(WORKER_URL + '/supabase', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save', table: 'projects', record: {
-            id:o.ID, timestamp:o.Timestamp, name:o.Name, description:o.Description,
-            wood:o['Wood Species'], dims:o.Dimensions, status:o.Status,
-            lessons:o['Lessons Learned'], madefor:o['Made For'], recipient:o.Recipient,
-            drivelink:o['Photo Link'], tools:o['Tools Used'], toolnotes:o['Tool Notes'],
-            notes:o.Notes, tags:o.Tags, priority:o.Priority,
-            sourceurl:o['Source URL'], nextsteps:o['Next Steps']||''
-          }})
-        }));
-      });
-    }
-
-    // Tools
-    if (all.Tools?.length) {
-      all.Tools.forEach(o => {
-        writes.push(fetch(WORKER_URL + '/supabase', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save', table: 'tools', record: {
-            id:o.ID, timestamp:o.Timestamp, category:o.Category, name:o.Name,
-            brand:o.Brand, model:o.Model, serial:o['Serial Number'],
-            purchasedate:o['Purchase Date'], price:o.Price, location:o.Location,
-            manual:o.Manual, condition:o.Condition, notes:o.Notes,
-            drivelink:o['Drive Link'], hasmaintlog:o['Has Maint Log'],
-            maintschedule:o['Maint Schedule']||''
-          }})
-        }));
-      });
-    }
-
-    // Supplies
-    if (all.Supplies?.length) {
-      all.Supplies.forEach(o => {
-        writes.push(fetch(WORKER_URL + '/supabase', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save', table: 'supplies', record: {
-            id:o.ID, timestamp:o.Timestamp, name:o.Name, category:o.Category,
-            location:o.Location, notes:o.Notes
-          }})
-        }));
-      });
-    }
-
-    // Resources
-    if (all.Resources?.length) {
-      all.Resources.forEach(o => {
-        writes.push(fetch(WORKER_URL + '/supabase', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save', table: 'resources', record: {
-            id:o.ID, timestamp:o.Timestamp, title:o.Title, type:o.Type,
-            url:o.URL, notes:o.Notes, ideanote:o['Idea Note'],
-            projectid:o['Project ID'], toolid:o['Tool ID']
-          }})
-        }));
-      });
-    }
-
-    // Maintenance
-    if (all.Maintenance?.length) {
-      all.Maintenance.forEach(o => {
-        writes.push(fetch(WORKER_URL + '/supabase', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save', table: 'maintenance', record: {
-            id:o.ID, toolid:o['Tool ID'], toolname:o['Tool Name'],
-            date:o.Date, note:o.Note
-          }})
-        }));
-      });
-    }
-
-    await Promise.allSettled(writes);
-    console.log('Migration complete — ' + writes.length + ' records written to Supabase');
-    showStatus('✅ Data migrated to Supabase (' + writes.length + ' records)', 'ok', 4000);
-  } catch(e) {
-    console.warn('Migration from Sheets failed:', e);
   }
 }
 
