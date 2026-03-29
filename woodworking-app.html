@@ -464,6 +464,11 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showSTab('bulk')"      id="stab-bulk">📍 Bulk Scan</button>
   </div>
   <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-shop" placeholder="Search tools & supplies..." oninput="document.getElementById('stab-inventory')?.classList.contains('active')?renderInvList():renderToolList()"></div>
+  <div style="margin-bottom:8px;">
+    <select id="loc-filter-select" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B6F47' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;" onchange="onLocFilterChange()">
+      <option value="">📍 All Locations</option>
+    </select>
+  </div>
 
   <div id="ssub-tools">
     <div id="tools-maint-alert" style="display:none;background:#FDE8E8;border:1px solid #F5B7B1;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px;font-weight:600;color:#922B21;align-items:center;gap:7px;cursor:pointer;" onclick="filterMaintDueTools()">
@@ -1588,6 +1593,8 @@ function showSTab(s) {
     $('ssub-'+x).style.display = x===s?'block':'none';
     $('stab-'+x).classList.toggle('active', x===s);
   });
+  // Reset location filter when switching tabs so Tools filter doesn't bleed into Supplies
+  const locSel=$('loc-filter-select'); if(locSel) locSel.value='';
   if(s==='tools')     renderToolList();
   if(s==='inventory') renderInvList();
   if(s==='add') {
@@ -2367,21 +2374,40 @@ function markMaintDone(toolId){
 }
 
 
+function populateLocFilter(){
+  const sel=$('loc-filter-select'); if(!sel) return;
+  const current=sel.value;
+  const isInv=document.getElementById('stab-inventory')?.classList.contains('active');
+  // Gather locations from active list
+  const locs=isInv
+    ? [...new Set(inventory.map(i=>(i.location||'').trim()).filter(Boolean))].sort()
+    : [...new Set(tools.map(t=>(t.location||'').trim()).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">📍 All Locations</option>'+locs.map(l=>`<option value="${l}"${l===current?' selected':''}>${l}</option>`).join('');
+}
+function onLocFilterChange(){
+  const isInv=document.getElementById('stab-inventory')?.classList.contains('active');
+  if(isInv) renderInvList(); else renderToolList();
+}
+function getLocFilter(){ return ($('loc-filter-select')?.value||''); }
 function renderToolList(){
   const cont=$('tool-list'), cntEl=$('tool-count');
   const srchEl=document.getElementById('srch-shop');
   const q=(srchEl?.value||'').toLowerCase();
   const missingOnly=srchEl?.dataset?.missingLocFilter==='1';
   const maintOnly=srchEl?.dataset?.maintDueFilter==='1';
+  const locFilter=getLocFilter();
   let list=tools.filter(t=>!q||(t.name||'').toLowerCase().includes(q)||(t.brand||'').toLowerCase().includes(q)||(t.location||'').toLowerCase().includes(q)||(t.model||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(t=>!(t.location||'').trim());
   if(maintOnly) list=list.filter(t=>{ const s=maintDueStatus(t); return s==='due'||s==='soon'; });
+  if(locFilter) list=list.filter(t=>(t.location||'').trim()===locFilter);
   if(activeCatFilters.size>0) list=list.filter(t=>activeCatFilters.has(t.cat));
+  populateLocFilter();
   updateLocAlerts();
   if(!list.length){
     const empty=tools.length===0?'<div class="empty-state"><div class="ei">🔧</div><p>No tools yet.<br>Tap ➕ Add New → Add Tool</p></div>':
       missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All tools have a location — great!</p></div>':
       maintOnly?'<div class="empty-state"><div class="ei">🔧</div><p>No tools due for service — great!</p></div>':
+      locFilter?`<div class="empty-state"><div class="ei">📍</div><p>No tools at ${locFilter}.</p></div>`:
       '<div class="empty-state"><div class="ei">🔍</div><p>No tools match your search.</p></div>';
     cont.innerHTML=empty; cntEl.textContent=''; return;
   }
@@ -2644,9 +2670,12 @@ function renderInvList(){
   const q=(srchEl?.value||'').toLowerCase();
   updateLocAlerts();
   if(invViewCompact){
+    const locFilter=getLocFilter();
     let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q));
     if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
+    if(locFilter) list=list.filter(i=>(i.location||'').trim()===locFilter);
     if(activeInvCat!=='All') list=list.filter(i=>(i.category||'Miscellaneous')===activeInvCat);
+    populateLocFilter();
     cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
     if(!list.length){ cont.innerHTML=missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match.</p></div>'; return; }
     cont.innerHTML='<div class="card" style="padding:8px 13px;">'+list.map(i=>{
@@ -2663,9 +2692,12 @@ function renderInvList(){
     }).join('')+'</div>';
     return;
   }
+  const locFilterFull=getLocFilter();
   let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
+  if(locFilterFull) list=list.filter(i=>(i.location||'').trim()===locFilterFull);
   if(activeInvCat!=='All') list=list.filter(i=>(i.category||'Miscellaneous')===activeInvCat);
+  populateLocFilter();
   if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No supplies yet.<br>Tap ➕ Add New → Add Supply</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
@@ -2737,6 +2769,7 @@ function filterMaintDueTools(){
 }
 function clearAllFilters(){
   const ss=$('srch-shop'); if(ss){ ss.dataset.missingLocFilter=''; ss.dataset.maintDueFilter=''; }
+  const ls=$('loc-filter-select'); if(ls) ls.value='';
 }
 
 // ════════════════════════════════════════════════════════════════
