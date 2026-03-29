@@ -1041,7 +1041,8 @@ async function syncFromSupabase() {
           id, ts:r[1]?new Date(r[1]).getTime():Date.now(),
           name:r[2]||'', desc:r[3]||'', wood:r[4]||'', dims:r[5]||'',
           status, lessons:r[7]||'', madeFor:r[8]||'Self',
-          recipient:r[9]||'', driveLink:r[10]||'', tools:r[11]||'',
+          recipient:r[9]||'', driveLink:(r[10]||'').split(' | ').filter(Boolean)[0]||'',
+          driveLinks:(r[10]||'').split(' | ').filter(Boolean), tools:r[11]||'',
           toolNotes:r[12]||'', tags:r[13]?r[13].split(',').map(t=>t.trim()).filter(Boolean):[],
           notes:r[14]||'', priority:r[15]||'', sourceUrl:r[16]||'', nextSteps:r[17]||''
         };
