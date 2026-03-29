@@ -626,7 +626,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           </div>
           <input type="file" id="t-photo-input" accept="image/*" style="display:none" onchange="onToolPhoto(event)">
           <div id="t-photo-wrap" style="display:none;margin-top:10px;">
-            <img id="t-photo-prev" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+            <img id="t-photo-prev" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="if(this.src)openLightbox(this.src)">
             <div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
               <button class="btn btn-blue btn-sm" onclick="shareToolPhoto()">💾 Save to Drive</button>
               <span style="font-size:11px;color:var(--muted);">Then paste link below</span>
@@ -635,7 +635,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <div class="drive-sec">
             <div class="drive-lbl">Google Drive link</div>
             <input type="url" id="t-drive-link" placeholder="https://drive.google.com/..." oninput="onDriveLink('t')">
-            <img id="t-drive-prev" class="drive-prev" style="display:none;">
+            <img id="t-drive-prev" class="drive-prev" style="display:none;cursor:pointer;" onclick="if(this.src)openLightbox(this.src)">
           </div>
         </div>
         <div class="toggle-row">
@@ -1560,8 +1560,6 @@ function showTab(t) {
 
 function showPTab(s) {
   if(s!=='add') activePTab=s;
-  // Clear search when switching tabs
-  const srch=document.getElementById('srch-projects'); if(srch) srch.value='';
   ['ideas','planned','progress','completed','add'].forEach(x=>{
     $('psub-'+x).style.display = x===s?'block':'none';
     $('ptab-'+x).classList.toggle('active', x===s);
@@ -2047,7 +2045,7 @@ function refreshDrivePreviews() {
     const driveUrl = driveThumb(link);
     // Show Drive thumbnail, or use Supabase/direct URL directly as image src
     const src = driveUrl || (link.startsWith('http') ? link : null);
-    return src ? `<img src="${src}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">` : '';
+    return src ? `<img src="${src}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="openLightbox('${src}')" onerror="this.style.display='none'">` : '';
   }).join('');
 }
 
