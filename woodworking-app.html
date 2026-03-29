@@ -3472,11 +3472,13 @@ function renderImportQueue(){
   const grid=$('import-grid'); if(!grid) return;
   grid.innerHTML=q.map(function(url){
     const sel=importSelectedUrls.has(url);
-    const safeUrl=url.replace(/'/g,'%27');
-    return '<div style="position:relative;aspect-ratio:1;cursor:pointer;" onclick="importToggleSelect(''+safeUrl+'')">'
-      +'<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:2.5px solid '+(sel?'var(--accent)':'var(--border)')+';" onerror="this.parentElement.style.display='none'">'
-      +(sel?'<div style="position:absolute;top:4px;left:4px;background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">&#10003;</div>':'')
-      +'<button onclick="event.stopPropagation();importDeletePhoto(''+safeUrl+'')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>'
+    const safeUrl=encodeURIComponent(url);
+    const border=sel?'var(--accent)':'var(--border)';
+    const check=sel?'<div style="position:absolute;top:4px;left:4px;background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">&#10003;</div>':'';
+    return '<div style="position:relative;aspect-ratio:1;cursor:pointer;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)">'
+      +'<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:2.5px solid '+border+';" onerror="this.parentElement.style.display=&quot;none&quot;">'
+      +check
+      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;)" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>'
       +'</div>';
   }).join('');
   const bar=$('import-action-bar');
@@ -3499,7 +3501,7 @@ function importToggleSelect(url){
 
 function importDeletePhoto(url){
   const decoded=decodeURIComponent(url);
-  if(!confirm('Remove this photo from the queue?')) return;
+  if(!confirm('Remove this photo from the queue?\n\n(It stays in Supabase Storage but won\'t be assigned to any project.)')) return;
   importSelectedUrls.delete(decoded);
   const q=loadImportQueue().filter(function(u){ return u!==decoded; });
   saveImportQueue(q);
