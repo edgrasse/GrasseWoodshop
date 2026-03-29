@@ -228,20 +228,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 .sync-banner .sync-text { font-size:12px; }
 .sync-banner .sync-text strong { display:block; font-size:13px; margin-bottom:2px; }
 
-/* DRIVE MIGRATION */
-.drive-migrate-banner { background:#FFF8E7; border:1px solid #FFD966; border-radius:var(--radius); padding:9px 13px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:#7A5700; font-weight:600; }
-.drive-badge { display:inline-flex; align-items:center; gap:4px; background:#FFF3CD; border:1px solid #FFD966; border-radius:10px; padding:2px 9px; font-size:11px; font-weight:700; color:#7A5700; cursor:pointer; margin-top:5px; }
-.drive-badge:active { background:#FFE89A; }
 
-/* PHOTO REPLACE SHEET */
-.photo-sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; display:none; align-items:flex-end; justify-content:center; }
-.photo-sheet-overlay.open { display:flex; }
-.photo-sheet { background:var(--white); border-radius:18px 18px 0 0; padding:22px 20px 36px; width:100%; max-width:520px; }
-.photo-sheet-title { font-family:'Playfair Display',serif; font-size:17px; color:var(--dark); margin-bottom:4px; }
-.photo-sheet-sub { font-size:12px; color:var(--muted); margin-bottom:18px; }
-.photo-sheet-btn { width:100%; padding:14px; border-radius:var(--radius); border:none; font-size:15px; font-weight:600; cursor:pointer; margin-bottom:10px; }
-.photo-sheet-btn.primary { background:var(--accent); color:white; }
-.photo-sheet-btn.cancel  { background:var(--warm); color:var(--charcoal); border:1.5px solid var(--border); }
 
 /* STATUS BAR */
 .status-bar { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--dark); color:var(--cream); padding:10px 20px; border-radius:30px; font-size:13px; font-weight:500; box-shadow:var(--shadow-lg); z-index:200; opacity:0; transition:opacity 0.3s; pointer-events:none; max-width:88%; text-align:center; }
@@ -336,7 +323,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
 <!-- ═══════════════════════ PROJECTS ═══════════════════════ -->
 <div class="section active" id="section-projects">
   <div id="sync-banner-projects"></div>
-  <div id="proj-drive-banner"></div>
   <div class="sub-tabs">
     <button class="sub-tab active" onclick="showPTab('progress')"  id="ptab-progress">⚡ In Progress</button>
     <button class="sub-tab"        onclick="showPTab('planned')"   id="ptab-planned">📋 Planned</button>
@@ -344,10 +330,10 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
   </div>
+  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists()"></div>
 
   <div id="psub-planned" style="display:none;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-planned" placeholder="Search planned projects..." oninput="renderPList('planned')"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
       <button id="proj-view-btn-planned" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('planned')">☰ Compact</button>
     </div>
     <div class="filter-chips">
@@ -359,8 +345,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-ideas" style="display:none;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-ideas" placeholder="Search ideas..." oninput="renderPList('ideas')"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
       <button id="proj-view-btn-ideas" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('ideas')">☰ Compact</button>
     </div>
     <div class="filter-chips">
@@ -372,8 +357,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-progress" style="display:block;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-progress" placeholder="Search active projects..." oninput="renderPList('progress')"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
       <button id="proj-view-btn-progress" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('progress')">☰ Compact</button>
     </div>
     <div class="filter-chips">
@@ -385,8 +369,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-completed" style="display:none;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <div class="search-bar" style="flex:1;margin-bottom:0;"><span class="search-icon">🔍</span><input type="text" id="srch-completed" placeholder="Search completed projects..." oninput="renderPList('completed')"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
       <button id="proj-view-btn-completed" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;" onclick="toggleProjView('completed')">☰ Compact</button>
     </div>
     <div class="filter-chips">
@@ -483,6 +466,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showSTab('add')"       id="stab-add">➕ Add</button>
     <button class="sub-tab"        onclick="showSTab('bulk')"      id="stab-bulk">📍 Bulk Scan</button>
   </div>
+  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-shop" placeholder="Search tools & supplies..." oninput="document.getElementById('stab-inventory')?.classList.contains('active')?renderInvList():renderToolList()"></div>
 
   <div id="ssub-tools">
     <div id="tools-maint-alert" style="display:none;background:#FDE8E8;border:1px solid #F5B7B1;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px;font-weight:600;color:#922B21;align-items:center;gap:7px;cursor:pointer;" onclick="filterMaintDueTools()">
@@ -493,7 +477,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <span style="font-size:15px;">📍</span><span id="tools-loc-alert-msg"></span>
       <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
     </div>
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-tools" placeholder="Search tools..." oninput="renderToolList()"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 2px;">
       <span id="tool-count" style="font-size:13px;color:var(--muted);"></span>
       <button id="tool-view-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="toggleToolView()">☰ Compact</button>
@@ -506,17 +489,15 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <span class="filter-chip" data-cat="Measuring & Layout"   onclick="toggleCatFilter(this)">📐 Measuring</span>
       <span class="filter-chip" data-cat="Clamps & Workholding" onclick="toggleCatFilter(this)">🗜️ Clamps</span>
     </div>
-    <div id="tool-drive-banner"></div>
     <div id="tool-list"></div>
   </div>
 
   <div id="ssub-inventory" style="display:none;">
-    <div id="inv-drive-banner"></div>
+    <div id="inv-cat-tabs" class="sub-tabs" style="margin-bottom:8px;"></div>
     <div id="inv-loc-alert" style="display:none;background:#FFF3CD;border:1px solid #FFD966;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:600;color:#7A5700;align-items:center;gap:7px;cursor:pointer;" onclick="filterMissingLocInv()">
       <span style="font-size:15px;">📍</span><span id="inv-loc-alert-msg"></span>
       <span style="margin-left:auto;font-size:11px;font-weight:500;text-decoration:underline;">Show only</span>
     </div>
-    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-inv" placeholder="Search supplies..." oninput="renderInvList()"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 2px;">
       <span id="inv-count" style="font-size:13px;color:var(--muted);"></span>
       <button id="inv-view-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="toggleInvView()">☰ Compact</button>
@@ -1240,91 +1221,7 @@ async function uploadToSupabaseStorage(file) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// DRIVE PHOTO MIGRATION — badge tap → replace sheet → upload
-// ════════════════════════════════════════════════════════════════
-let _photoReplaceCtx = null; // { type:'tool'|'supply'|'project', id, linkIndex }
 
-function openPhotoSheet(type, id, linkIndex) {
-  _photoReplaceCtx = { type, id, linkIndex: linkIndex || 0 };
-  const names = { tool: 'tool', supply: 'supply', project: 'project' };
-  $('photo-sheet-sub').textContent = `Take a new photo to replace this Google Drive link on this ${names[type]}.`;
-  $('photo-sheet-status').textContent = '';
-  $('photo-sheet-file').value = '';
-  $('photo-sheet-overlay').classList.add('open');
-}
-
-function closePhotoSheet() {
-  $('photo-sheet-overlay').classList.remove('open');
-  _photoReplaceCtx = null;
-}
-
-async function handlePhotoReplace(ev) {
-  const file = ev.target.files[0];
-  if (!file || !_photoReplaceCtx) return;
-  const stat = $('photo-sheet-status');
-  const { type, id } = _photoReplaceCtx;
-  stat.innerHTML = '<span class="spinner dark"></span> Uploading photo...';
-
-  try {
-    const publicUrl = await uploadToSupabaseStorage(file);
-
-    if (type === 'tool') {
-      const t = tools.find(x => x.id === id); if (!t) throw new Error('Tool not found');
-      t.driveLink = publicUrl;
-      saveLocal();
-      toSheet({ action:'save', sheet:'Tools', id:t.id, timestamp:new Date(t.ts).toISOString(),
-        category:t.cat, name:t.name, brand:t.brand, model:t.model, serial:t.serial,
-        purchaseDate:t.date, price:t.price, location:t.location, manual:t.manual,
-        condition:t.condition, notes:t.notes, driveLink:publicUrl,
-        hasMaintLog:t.hasMaint?'Yes':'No', maintSchedule:t.maintSchedule });
-      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderToolList();
-
-    } else if (type === 'supply') {
-      const i = inventory.find(x => x.id === id); if (!i) throw new Error('Supply not found');
-      i.driveLink = publicUrl;
-      saveLocal();
-      toSheet({ action:'save', sheet:'Supplies', id:i.id, timestamp:new Date(i.ts).toISOString(),
-        name:i.name, category:i.category, location:i.location, notes:i.notes, driveLink:publicUrl });
-      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderInvList();
-
-    } else if (type === 'project') {
-      const p = projects.find(x => x.id === id); if (!p) throw new Error('Project not found');
-      // Replace the specific Drive link at linkIndex, or add if none
-      const links = p.driveLinks || [p.driveLink].filter(Boolean);
-      const idx = _photoReplaceCtx.linkIndex;
-      if (idx < links.length) links[idx] = publicUrl; else links.push(publicUrl);
-      p.driveLinks = links; p.driveLink = links[0];
-      saveLocal();
-      toSheet({ action:'save', sheet:'Projects', id:p.id, timestamp:new Date(p.ts).toISOString(),
-        name:p.name, description:p.desc, wood:p.wood, dimensions:p.dims, status:p.status,
-        lessons:p.lessons||'', madeFor:p.madeFor, recipient:p.recipient,
-        driveLink:links.join(' | '), tools:p.tools, toolNotes:p.toolNotes,
-        tags:(p.tags||[]).join(', '), notes:p.notes, priority:p.priority||'',
-        sourceUrl:p.sourceUrl||'', nextSteps:p.nextSteps||'' });
-      closePhotoSheet(); showStatus('✅ Photo uploaded!', 'ok'); renderAllPLists();
-    }
-  } catch(e) {
-    stat.textContent = '⚠️ Upload failed: ' + e.message;
-  }
-}
-
-// Count items still with Drive links (tools + supplies + projects)
-function drivePhotoCount() {
-  const isDrive = url => url && url.includes('drive.google.com');
-  const t = tools.filter(x => isDrive(x.driveLink)).length;
-  const s = inventory.filter(x => isDrive(x.driveLink)).length;
-  const p = projects.filter(x => (x.driveLinks||[x.driveLink].filter(Boolean)).some(isDrive)).length;
-  return t + s + p;
-}
-
-function renderDriveBanner(containerId) {
-  const el = $(containerId); if (!el) return;
-  const count = drivePhotoCount();
-  if (count === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="drive-migrate-banner">
-    <span>📎 ${count} item${count>1?'s':''} still have Google Drive photo links</span>
-  </div>`;
-}
 function f2b64(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result.split(',')[1]); rd.onerror=j; rd.readAsDataURL(f); }); }
 function f2url(f){ return new Promise((r,j)=>{ const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.onerror=j; rd.readAsDataURL(f); }); }
 
@@ -1858,17 +1755,17 @@ function toggleResFilter(el){
 // ════════════════════════════════════════════════════════════════
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
-function renderAllPLists(){ renderDriveBanner('proj-drive-banner'); ['ideas','planned','progress','completed'].forEach(renderPList); }
+function renderAllPLists(){ ['ideas','planned','progress','completed'].forEach(renderPList); }
 
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2, '': 3 };
 const PRIORITY_BADGE = { High: '🔴 High', Medium: '🟡 Medium', Low: '🟢 Low' };
 
 function renderPList(type){
   const cfg={
-    ideas:     {filter:p=>p.status==='Idea',         srch:'srch-ideas',     cont:'plist-ideas',     icon:'💡',msg:'No ideas yet.<br>Tap ➕ Add and set status to 💡 Idea!'},
-    planned:   {filter:p=>p.status==='Planned',       srch:'srch-planned',   cont:'plist-planned',   icon:'📋',msg:'No planned projects yet.<br>Tap ➕ Add to plan one!'},
-    progress:  {filter:p=>p.status==='In Progress',   srch:'srch-progress',  cont:'plist-progress',  icon:'⚡',msg:'No projects in progress.<br>Start one from Planned, or tap ➕ Add.'},
-    completed: {filter:p=>p.status==='Completed',     srch:'srch-completed', cont:'plist-completed', icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'}
+    ideas:     {filter:p=>p.status==='Idea',         srch:'srch-projects',  cont:'plist-ideas',     icon:'💡',msg:'No ideas yet.<br>Tap ➕ Add and set status to 💡 Idea!'},
+    planned:   {filter:p=>p.status==='Planned',       srch:'srch-projects',  cont:'plist-planned',   icon:'📋',msg:'No planned projects yet.<br>Tap ➕ Add to plan one!'},
+    progress:  {filter:p=>p.status==='In Progress',   srch:'srch-projects',  cont:'plist-progress',  icon:'⚡',msg:'No projects in progress.<br>Start one from Planned, or tap ➕ Add.'},
+    completed: {filter:p=>p.status==='Completed',     srch:'srch-projects',  cont:'plist-completed', icon:'✅',msg:'No completed projects yet.<br>Keep building! 🪚'}
   }[type]; if(!cfg) return;
   let filtered = filterList(projects.filter(cfg.filter), cfg.srch, type);
   // Sort planned and ideas by priority
@@ -1898,7 +1795,6 @@ function renderPList(type){
   const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
   cont.innerHTML = filtered.map(p=>{
     const allLinks = p.driveLinks||[p.driveLink].filter(Boolean);
-    const thumbs = allLinks.map(l=>driveThumb(l)).filter(Boolean);
     const tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
     const priorityBadge = p.priority && PRIORITY_BADGE[p.priority]
       ? `<span class="badge badge-priority-${p.priority.toLowerCase()}" style="font-size:10px;">${PRIORITY_BADGE[p.priority]}</span>` : '';
@@ -1924,19 +1820,11 @@ function renderPList(type){
       ${p.sourceUrl?`<a href="${p.sourceUrl}" target="_blank" style="font-size:12px;color:var(--accent);display:inline-block;margin-top:4px;">🔗 Source ↗</a>`:''}
       ${tags?`<div class="proj-tags">${tags}</div>`:''}
       ${(()=>{
-        const isDrive = url => url && url.includes('drive.google.com');
-        const driveLinks = allLinks.filter(isDrive);
-        const supaLinks  = allLinks.filter(l => !isDrive(l));
-        const driveBadges = driveLinks.map((l,i) =>
-          `<span class="drive-badge" onclick="openPhotoSheet('project','${p.id}',${allLinks.indexOf(l)})">📎 Drive photo — tap to replace</span>`
-        ).join('');
-        const supaThumbs = supaLinks.map(l =>
+        if(!allLinks.length) return '';
+        const thumbs = allLinks.map(l =>
           `<img src="${l}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${l}')" onerror="this.style.display='none'">`
         ).join('');
-        const driveAsThumb = !supaLinks.length && driveLinks.length
-          ? driveLinks.map(l => { const id=driveId(l); return id?`<img src="https://drive.google.com/thumbnail?id=${id}&sz=w600" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('https://drive.google.com/thumbnail?id=${id}&sz=w1200')" onerror="this.style.display='none'">`:''; }).join('') : '';
-        if (!driveLinks.length && !supaLinks.length) return '';
-        return `<div style="margin-top:9px;">${driveBadges}${supaLinks.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${supaThumbs}</div>`:''}${driveAsThumb?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${driveAsThumb}</div>`:''}</div>`;
+        return `<div style="margin-top:9px;"><div style="display:flex;flex-wrap:wrap;gap:6px;">${thumbs}</div></div>`;
       })()}
       ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
       ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-top:5px;">${p.notes}</div>`:''}
@@ -2355,9 +2243,8 @@ function markMaintDone(toolId){
 
 
 function renderToolList(){
-  renderDriveBanner('tool-drive-banner');
   const cont=$('tool-list'), cntEl=$('tool-count');
-  const srchEl=document.getElementById('srch-tools');
+  const srchEl=document.getElementById('srch-shop');
   const q=(srchEl?.value||'').toLowerCase();
   const missingOnly=srchEl?.dataset?.missingLocFilter==='1';
   const maintOnly=srchEl?.dataset?.maintDueFilter==='1';
@@ -2400,7 +2287,7 @@ function renderToolList(){
     <div class="card" style="padding:13px;">
       <div class="card-title" style="margin-bottom:9px;font-size:14px;">${CI[cat]||'🔧'} ${cat}</div>
       ${ts.map(t=>{
-        const thumb=t.driveLink&&!t.driveLink.includes('drive.google.com')?t.driveLink:driveThumb(t.driveLink);
+        const thumb=t.driveLink&&!t.driveLink.includes('drive.google.com')?t.driveLink:null;
         const ds=maintDueStatus(t);
         const noLoc=!(t.location||'').trim();
         const dueBadge=ds==='due'?`<span style="background:#FDE8E8;border:1px solid #F5B7B1;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;color:#922B21;">🔧 Service Due</span>`:
@@ -2448,12 +2335,8 @@ function renderToolList(){
                 </div>`;
               } catch(e){ return ''; }
             })():''}
-            ${(()=>{
-              const isDrive = t.driveLink && t.driveLink.includes('drive.google.com');
-              if (isDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('tool','${t.id}')">📎 Drive photo — tap to replace</span>`;
-              if (thumb) return `<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${thumb}')" onerror="this.style.display='none'">`;
-              return '';
-            })()}
+            ${thumb?`<img src="${thumb}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${thumb}')" onerror="this.style.display='none'">`:''
+}
             ${t.hasMaint?`<div style="margin-top:6px;"><div class="coll-hdr" onclick="togMaint('m-${t.id}',this)"><span style="font-size:12px;font-weight:600;color:var(--charcoal);">Maintenance Log (${(t.maintLog||[]).length})</span><span class="chevron">▼</span></div><div id="m-${t.id}" style="display:none;">${(t.maintLog||[]).map(m=>`<div class="maint-entry"><div class="mdate">${m.date}</div>${m.note}</div>`).join('')}<button class="btn btn-secondary btn-sm" style="margin-top:5px;" onclick="addMaintEntry('${t.id}')">+ Add Entry</button></div></div>`:''}
             ${t.manual?`<a href="${t.manual}" target="_blank" style="font-size:11px;color:var(--accent);margin-top:4px;display:inline-block;">📄 Manual</a>`:''}
             ${(()=>{ const linked=resources.filter(r=>r.toolId===t.id); return linked.length?`<div style="margin-top:7px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">📚 Resources</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(r=>`<a href="${r.url||'#'}" target="${r.url?'_blank':'_self'}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#E8F5E3;color:#3A6B2A;text-decoration:none;">${RES_ICONS[r.type]||'📌'} ${r.title}</a>`).join('')}</div></div>`:''; })()}
@@ -2601,11 +2484,21 @@ function clearInvForm(){
   if(saveBtn){ saveBtn.textContent='💾 Save Item'; saveBtn.onclick=saveInvItem; }
   applyLocLock(); // re-apply location lock for next item
 }
+function renderInvCatTabs(){
+  const cats=['All',...[...new Set(inventory.map(i=>i.category||'Miscellaneous'))].sort()];
+  const el=$('inv-cat-tabs'); if(!el) return;
+  el.innerHTML=cats.map(c=>`<button class="sub-tab${c===activeInvCat?' active':''}" onclick="setInvCat('${c}')">${c}</button>`).join('');
+}
+function setInvCat(cat){
+  activeInvCat=cat;
+  renderInvCatTabs();
+  renderInvList();
+}
 function renderInvList(){
-  renderDriveBanner('inv-drive-banner');
+  renderInvCatTabs();
   const cont=$('inv-list'), cntEl=$('inv-count');
   const catIconI={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
-  const srchEl=document.getElementById('srch-inv');
+  const srchEl=document.getElementById('srch-shop');
   const missingOnly=srchEl?.dataset?.missingLocFilter==='1';
   const q=(srchEl?.value||'').toLowerCase();
   updateLocAlerts();
@@ -2630,6 +2523,7 @@ function renderInvList(){
   }
   let list=inventory.filter(i=>!q||(i.name||'').toLowerCase().includes(q)||(i.location||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q));
   if(missingOnly) list=list.filter(i=>!(i.location||'').trim());
+  if(activeInvCat!=='All') list=list.filter(i=>(i.category||'Miscellaneous')===activeInvCat);
   if(!list.length){ cont.innerHTML=inventory.length===0?'<div class="empty-state"><div class="ei">📦</div><p>No supplies yet.<br>Tap ➕ Add New → Add Supply</p></div>':missingOnly?'<div class="empty-state"><div class="ei">📍</div><p>All items have a location — great!</p></div>':'<div class="empty-state"><div class="ei">🔍</div><p>No items match your search.</p></div>'; cntEl.textContent=''; return; }
   cntEl.textContent=(missingOnly?list.length+' unlocated of ':'')+inventory.length+' items';
   const catIcon={'Fasteners':'🔩','Hanging Hardware':'🪝','Sandpaper & Abrasives':'🟤','Finishing Supplies':'🖌️','Wood & Sheet Goods':'🪵','Miscellaneous':'📦'};
@@ -2652,12 +2546,8 @@ function renderInvList(){
             </div>
           </div>
           <div class="item-meta">${i.location?'📍 '+i.location:locBadge}${i.notes?'<br>'+i.notes:''}</div>
-          ${(()=>{
-              const iDrive = i.driveLink && i.driveLink.includes('drive.google.com');
-              if (iDrive) return `<span class="drive-badge" onclick="event.stopPropagation();openPhotoSheet('supply','${i.id}')">📎 Drive photo — tap to replace</span>`;
-              if (i.driveLink) return `<img src="${i.driveLink}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${i.driveLink}')" onerror="this.style.display='none'">`;
-              return '';
-            })()}
+          ${i.driveLink?`<img src="${i.driveLink}" style="width:100%;max-height:120px;object-fit:cover;border-radius:7px;margin-top:7px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${i.driveLink}')" onerror="this.style.display='none'">`:''
+}
         </div>
       </div>`;}).join('')}
     </div>`).join('');
@@ -2689,23 +2579,22 @@ function updateLocAlerts(){
 }
 
 function filterMissingLocTools(){
-  const s=$('srch-tools'); if(!s) return;
+  const s=$('srch-shop'); if(!s) return;
   if(s.dataset.missingLocFilter==='1'){ s.dataset.missingLocFilter=''; } else { s.dataset.missingLocFilter='1'; s.dataset.maintDueFilter=''; }
   renderToolList();
 }
 function filterMissingLocInv(){
-  const s=$('srch-inv'); if(!s) return;
+  const s=$('srch-shop'); if(!s) return;
   s.dataset.missingLocFilter=s.dataset.missingLocFilter==='1'?'':'1';
   renderInvList();
 }
 function filterMaintDueTools(){
-  const s=$('srch-tools'); if(!s) return;
+  const s=$('srch-shop'); if(!s) return;
   if(s.dataset.maintDueFilter==='1'){ s.dataset.maintDueFilter=''; } else { s.dataset.maintDueFilter='1'; s.dataset.missingLocFilter=''; }
   renderToolList();
 }
 function clearAllFilters(){
-  const st=$('srch-tools'); if(st){ st.dataset.missingLocFilter=''; st.dataset.maintDueFilter=''; }
-  const si=$('srch-inv'); if(si){ si.dataset.missingLocFilter=''; }
+  const ss=$('srch-shop'); if(ss){ ss.dataset.missingLocFilter=''; ss.dataset.maintDueFilter=''; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3389,17 +3278,6 @@ async function migrateFromSheets() {
 startupSync();
 </script>
 
-<!-- PHOTO REPLACE SHEET -->
-<div class="photo-sheet-overlay" id="photo-sheet-overlay" onclick="if(event.target===this)closePhotoSheet()">
-  <div class="photo-sheet">
-    <div class="photo-sheet-title">📎 Replace Drive Photo</div>
-    <div class="photo-sheet-sub" id="photo-sheet-sub">Take a new photo to replace this Google Drive link.</div>
-    <input type="file" id="photo-sheet-file" accept="image/*" style="display:none" onchange="handlePhotoReplace(event)">
-    <button class="photo-sheet-btn primary" onclick="document.getElementById('photo-sheet-file').click()">📷 Take or Choose Photo</button>
-    <button class="photo-sheet-btn cancel" onclick="closePhotoSheet()">✕ Cancel</button>
-    <div id="photo-sheet-status" style="font-size:12px;color:var(--muted);text-align:center;margin-top:4px;"></div>
-  </div>
-</div>
 
 <!-- LIGHTBOX -->
 <div id="lightbox-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:1000;align-items:center;justify-content:center;padding:16px;" onclick="closeLightbox()">
