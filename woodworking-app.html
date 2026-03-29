@@ -386,6 +386,8 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
           <p style="font-size:11px;color:var(--muted);">You can select multiple at once</p>
         </div>
         <input type="file" id="import-file-input" accept="image/*" multiple style="display:none" onchange="importPhotosSelected(event)">
+        <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="importRecoverFromStorage()">🔍 Recover Unassigned Photos from Storage</button>
+        <div id="import-recover-status" style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px;"></div>
       </div>
       <div id="import-progress" style="display:none;margin-top:10px;">
         <div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:6px;" id="import-progress-msg">Uploading photos...</div>
@@ -3525,10 +3527,21 @@ async function importPhotosSelected(ev){
     return url;
   }));
   $('import-progress').style.display='none';
-  results.forEach(function(r){ if(r.status==='fulfilled'&&r.value) q.push(r.value); });
+  let uploaded=0, failed=0;
+  results.forEach(function(r){
+    if(r.status==='fulfilled'){
+      const val=r.value;
+      if(val && typeof val==='string' && val.startsWith('http')){ q.push(val); uploaded++; }
+      else { failed++; console.warn('Upload returned bad value:',val); }
+    } else {
+      failed++;
+      console.warn('Upload rejected:',r.reason);
+    }
+  });
   saveImportQueue(q);
-  const failed=results.filter(function(r){ return r.status==='rejected'; }).length;
+  console.log('Import queue saved:',q.length,'photos. Queue:',q);
   if(failed) showStatus('Warning: '+failed+' photo'+(failed>1?'s':'')+' failed to upload','err');
+  if(uploaded) showStatus(uploaded+' photo'+(uploaded>1?'s':'')+' ready to assign!','ok');
   renderImportQueue();
 }
 
@@ -3626,6 +3639,40 @@ async function importAssignToProject(projId){
   updateImportBadge();
 }
 
+async function importRecoverFromStorage(){
+  const statusEl=$('import-recover-status');
+  if(statusEl) statusEl.textContent='Scanning storage...';
+  try {
+    // List all files in workshop-photos bucket via Supabase Storage API
+    const res=await fetch(WORKER_URL+'/supabase',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'storage-list',bucket:'workshop-photos'})
+    });
+    const data=await res.json();
+    if(!Array.isArray(data)){ if(statusEl) statusEl.textContent='Could not list storage files.'; return; }
+    // Build public URLs for all files
+    const allUrls=data.map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(f.name); });
+    // Filter out ones already assigned to a project
+    const assignedUrls=new Set();
+    projects.forEach(function(p){
+      const links=p.driveLinks||[p.driveLink].filter(Boolean);
+      links.forEach(function(l){ assignedUrls.add(l); });
+    });
+    const unassigned=allUrls.filter(function(u){ return !assignedUrls.has(u); });
+    if(!unassigned.length){ if(statusEl) statusEl.textContent='No unassigned photos found in storage.'; return; }
+    const q=loadImportQueue();
+    const existing=new Set(q);
+    const toAdd=unassigned.filter(function(u){ return !existing.has(u); });
+    toAdd.forEach(function(u){ q.push(u); });
+    saveImportQueue(q);
+    if(statusEl) statusEl.textContent='';
+    showStatus('Recovered '+toAdd.length+' photo'+(toAdd.length!==1?'s':'')+' into queue!','ok');
+    renderImportQueue();
+  } catch(e){
+    if(statusEl) statusEl.textContent='Recovery failed: '+e.message;
+    console.error('Recovery error:',e);
+  }
+}
 function importCancelForm(){
   $('import-new-form').style.display='none';
   $('import-existing-picker').style.display='none';
