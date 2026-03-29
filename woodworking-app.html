@@ -330,7 +330,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
   </div>
-  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists()"></div>
+  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists();if(!this.value.trim()){showPTab(activePTab);}"></div>
 
   <div id="psub-planned" style="display:none;">
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
@@ -452,7 +452,10 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         </div>
       </div>
       <div class="form-row"><label>Notes</label><textarea id="p-notes" placeholder="Any other notes..."></textarea></div>
-      <button class="btn btn-primary btn-full" onclick="saveProject()">💾 Save Project</button>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary btn-full" onclick="saveProject()">💾 Save Project</button>
+        <button class="btn btn-secondary" style="flex-shrink:0;" onclick="cancelProjEdit()">✕ Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -950,6 +953,7 @@ let chatB64 = null, chatMime = null;
 let toolViewCompact = false;
 let invViewCompact  = false;
 let activeInvCat     = 'All';
+let activePTab       = 'progress';
 let activeCatFilters = new Set(); // active tool category filters
 
 // ════════════════════════════════════════════════════════════════
@@ -1555,6 +1559,9 @@ function showTab(t) {
 }
 
 function showPTab(s) {
+  if(s!=='add') activePTab=s;
+  // Clear search when switching tabs
+  const srch=document.getElementById('srch-projects'); if(srch) srch.value='';
   ['ideas','planned','progress','completed','add'].forEach(x=>{
     $('psub-'+x).style.display = x===s?'block':'none';
     $('ptab-'+x).classList.toggle('active', x===s);
@@ -1766,7 +1773,21 @@ function toggleResFilter(el){
 // ════════════════════════════════════════════════════════════════
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
-function renderAllPLists(){ ['ideas','planned','progress','completed'].forEach(renderPList); }
+function renderAllPLists(){
+  ['ideas','planned','progress','completed'].forEach(renderPList);
+  const q=(document.getElementById('srch-projects')?.value||'').trim();
+  if(q){
+    // Show all content divs so results across all statuses are visible
+    ['ideas','planned','progress','completed'].forEach(x=>{
+      const el=$('psub-'+x); if(el) el.style.display='block';
+    });
+    // Dim tab buttons to indicate "all" mode
+    ['ideas','planned','progress','completed'].forEach(x=>{
+      const btn=$('ptab-'+x); if(btn) btn.classList.remove('active');
+    });
+  }
+  // When no query, visibility is controlled by showPTab — don't touch it here
+}
 
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2, '': 3 };
 const PRIORITY_BADGE = { High: '🔴 High', Medium: '🟡 Medium', Low: '🟢 Low' };
@@ -1810,13 +1831,13 @@ function renderPList(type){
     const priorityBadge = p.priority && PRIORITY_BADGE[p.priority]
       ? `<span class="badge badge-priority-${p.priority.toLowerCase()}" style="font-size:10px;">${PRIORITY_BADGE[p.priority]}</span>` : '';
     const actionBtns = type==='ideas'
-      ? `<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Planned')">📋 Promote to Planned</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','Planned')">📋 Promote to Planned</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
       : type==='planned'
-      ? `<button class="btn btn-green btn-sm" onclick="moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
+      ? `<button class="btn btn-green btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
       : type==='progress'
-      ? `<button class="btn btn-primary btn-sm" onclick="moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`
-      : `<button class="btn btn-secondary btn-sm" onclick="editProject('${p.id}')">✏️ Edit</button>`;
-    return `<div class="proj-card">
+      ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
+      : `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`;
+    return `<div class="proj-card" style="cursor:pointer;" onclick="editProject('${p.id}')">
       <div class="proj-card-header"><div>
         <div class="proj-card-name">${p.name}</div>
         <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div>
@@ -1958,6 +1979,18 @@ function commitProj(p){
   showStatus(p.isEdit?'✅ Project updated!':'✅ Project saved!','ok');
   clearProjForm(); renderAllPLists(); selToolIds=[]; selTags=[];
   setTimeout(()=>{ showPTab(p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed'); window.scrollTo({top:0,behavior:'smooth'}); },350);
+}
+function cancelProjEdit(){
+  const editId = gv('p-edit-id');
+  clearProjForm();
+  selToolIds=[]; selTags=[];
+  if(editId){
+    const p=projects.find(x=>x.id===editId);
+    const dest=p?(p.status==='In Progress'?'progress':p.status==='Completed'?'completed':p.status==='Planned'?'planned':'ideas'):'progress';
+    showPTab(dest);
+  } else {
+    showPTab('progress');
+  }
 }
 function clearProjForm(){
   ['p-name','p-desc','p-wood','p-dims','p-recipient','p-tool-notes','p-notes','p-lessons','p-source-url','p-next-steps'].forEach(id=>{const e=$(id);if(e)e.value='';});
