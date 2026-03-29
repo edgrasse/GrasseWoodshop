@@ -1020,7 +1020,7 @@ async function syncFromSupabase() {
     // Map Supabase lowercase column names into the row-array shape the rest of the sync logic expects
     const pData = all.projects?.length  ? { rows: all.projects.map(o =>  [o.id,o.timestamp,o.name,o.description,o.wood,o.dims,o.status,o.lessons,o.madefor,o.recipient,o.drivelink,o.tools,o.toolnotes,o.notes,o.tags,o.priority,o.sourceurl,o.nextsteps]) } : null;
     const tData = all.tools?.length     ? { rows: all.tools.map(o =>     [o.id,o.timestamp,o.category,o.name,o.brand,o.model,o.serial,o.purchasedate,o.price,o.location,o.manual,o.condition,o.notes,o.drivelink,o.hasmaintlog,o.maintschedule||'']) } : null;
-    const iData = all.supplies?.length  ? { rows: all.supplies.map(o =>  [o.id,o.timestamp,o.name,o.category,o.location,o.notes]) } : null;
+    const iData = all.supplies?.length  ? { rows: all.supplies.map(o =>  [o.id,o.timestamp,o.name,o.category,o.location,o.notes,o.drivelink||'']) } : null;
     const rData = all.resources?.length ? { rows: all.resources.map(o => [o.id,o.timestamp,o.title,o.type,o.url,o.notes,o.ideanote,o.projectid,o.toolid]) } : null;
     const mData = all.maintenance?.length?{ rows: all.maintenance.map(o=>[o.id,o.toolid,o.toolname,o.date,o.note]) } : null;
 
@@ -1075,7 +1075,7 @@ async function syncFromSupabase() {
       const seen = new Set();
       inventory = iData.rows.map(r => ({
         id:r[0]||genId(), ts:r[1]?new Date(r[1]).getTime():Date.now(),
-        name:r[2]||'', category:r[3]||'Miscellaneous', location:r[4]||'', notes:r[5]||''
+        name:r[2]||'', category:r[3]||'Miscellaneous', location:r[4]||'', notes:r[5]||'', driveLink:r[6]||''
       })).filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; });
     }
 
@@ -1483,10 +1483,19 @@ function editInvItem(id) {
   showStatus('✏️ Editing — make changes and tap Update Item','',3500);
 }
 
-function updateInvItem(id) {
+async function updateInvItem(id) {
   const name=gv('i-name'); if(!name){showStatus('⚠️ Enter an item name','err');return;}
   const loc=fullLoc('i'), idx=inventory.findIndex(x=>x.id===id); if(idx===-1) return;
-  inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes')};
+  let driveLink = inventory[idx].driveLink || '';
+  if(window._saveInvPhotoOnCreate && window._pendingInvPhotoFile) {
+    try {
+      showStatus('⏳ Uploading photo...','');
+      driveLink = await uploadToSupabaseStorage(window._pendingInvPhotoFile);
+    } catch(e) { console.warn('Photo upload failed:', e); }
+    window._pendingInvPhotoFile = null; window._saveInvPhotoOnCreate = false;
+  }
+  window._pendingInvPhoto = null;
+  inventory[idx]={...inventory[idx],name,category:gv('i-category'),location:loc,notes:gv('i-notes'),driveLink};
   saveLocal();
   toSheet({action:'save',sheet:'Supplies',id,timestamp:new Date(inventory[idx].ts).toISOString(),name:inventory[idx].name,category:inventory[idx].category,location:inventory[idx].location,notes:inventory[idx].notes,driveLink:inventory[idx].driveLink||''});
   showStatus('✅ Item updated!','ok'); clearInvForm(); showSTab('inventory'); renderInvList();
