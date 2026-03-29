@@ -331,6 +331,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       <button class="sub-tab"        onclick="showPTab('ideas')"     id="ptab-ideas">💡 Ideas</button>
       <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
       <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
+      <button class="sub-tab"        onclick="showPTab('import')"    id="ptab-import">📥 Import <span id="import-badge" style="display:none;background:var(--accent);color:white;border-radius:10px;padding:0 5px;font-size:10px;margin-left:2px;"></span></button>
     </div>
     <button id="proj-compact-btn" class="btn btn-secondary btn-sm" style="padding:3px 10px;font-size:11px;white-space:nowrap;flex-shrink:0;" onclick="toggleProjView(activePTab)">☰</button>
   </div>
@@ -373,6 +374,74 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
   </div>
 
   <div id="psub-search" style="display:none;"></div>
+
+  <div id="psub-import" style="display:none;">
+    <div class="card" style="padding:13px;">
+      <div class="card-title">📥 Bulk Photo Import</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Select all your project photos at once. They upload here and wait — group them into projects at your own pace.</p>
+      <div id="import-upload-area">
+        <div class="photo-upload-area" style="margin-bottom:0;" onclick="document.getElementById('import-file-input').click()">
+          <div class="pu-icon" style="font-size:28px;">📷</div>
+          <p style="font-size:13px;font-weight:600;">Tap to select photos</p>
+          <p style="font-size:11px;color:var(--muted);">You can select multiple at once</p>
+        </div>
+        <input type="file" id="import-file-input" accept="image/*" multiple style="display:none" onchange="importPhotosSelected(event)">
+      </div>
+      <div id="import-progress" style="display:none;margin-top:10px;">
+        <div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:6px;" id="import-progress-msg">Uploading photos...</div>
+        <div style="background:var(--border);border-radius:6px;height:8px;overflow:hidden;">
+          <div id="import-progress-bar" style="height:100%;background:var(--accent);border-radius:6px;width:0%;transition:width 0.3s;"></div>
+        </div>
+      </div>
+    </div>
+    <div id="import-queue-wrap" style="display:none;margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span id="import-queue-count" style="font-size:13px;font-weight:600;color:var(--charcoal);"></span>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file-input').click()">+ Add More</button>
+      </div>
+      <div id="import-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;"></div>
+      <div id="import-action-bar" style="display:none;background:var(--dark);border-radius:12px;padding:12px 14px;margin-bottom:8px;flex-direction:column;gap:8px;">
+        <div id="import-selection-count" style="font-size:12px;color:rgba(255,255,255,0.7);text-align:center;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" style="flex:1;font-size:13px;" onclick="importCreateNew()">➕ New Project</button>
+          <button class="btn btn-secondary" style="flex:1;font-size:13px;background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);" onclick="importAddToExisting()">📎 Existing</button>
+        </div>
+      </div>
+    </div>
+    <div id="import-new-form" style="display:none;" class="card">
+      <div class="card-title" style="font-size:14px;">➕ New Project</div>
+      <div id="import-new-photo-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+      <div class="form-row"><label>Project Name *</label><input type="text" id="imp-name" placeholder="e.g. Walnut Coffee Table"></div>
+      <div class="form-row"><label>Description</label><textarea id="imp-desc" placeholder="What did you build?" style="min-height:60px;"></textarea></div>
+      <div class="form-row"><label>Wood Species</label><input type="text" id="imp-wood" placeholder="e.g. Walnut, White Oak"></div>
+      <div class="form-row"><label>Status</label>
+        <select id="imp-status">
+          <option value="Completed" selected>✅ Completed</option>
+          <option value="In Progress">⚡ In Progress</option>
+          <option value="Planned">📋 Planned</option>
+          <option value="Idea">💡 Idea</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Made For</label>
+        <select id="imp-for" onchange="$('imp-recip-row').style.display=this.value==='Other'?'block':'none'">
+          <option value="Self">Myself</option>
+          <option value="Other">Someone else</option>
+        </select>
+      </div>
+      <div class="form-row" id="imp-recip-row" style="display:none;"><label>Recipient</label><input type="text" id="imp-recipient" placeholder="Who is it for?"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary btn-full" onclick="importSaveNewProject()">💾 Save Project</button>
+        <button class="btn btn-secondary" style="flex-shrink:0;" onclick="importCancelForm()">✕</button>
+      </div>
+    </div>
+    <div id="import-existing-picker" style="display:none;" class="card">
+      <div class="card-title" style="font-size:14px;">📎 Add to Existing Project</div>
+      <div id="import-existing-photo-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+      <div class="search-bar" style="margin-bottom:8px;"><span class="search-icon">🔍</span><input type="text" id="imp-proj-search" placeholder="Search projects..." oninput="renderImportProjectPicker()"></div>
+      <div id="import-proj-list" style="max-height:300px;overflow-y:auto;"></div>
+      <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="importCancelForm()">✕ Cancel</button>
+    </div>
+  </div>
 
   <div id="psub-add" style="display:none;">
     <div class="card">
@@ -1569,11 +1638,12 @@ function showTab(t) {
 }
 
 function showPTab(s) {
-  if(s!=='add') activePTab=s;
-  ['ideas','planned','progress','completed','add'].forEach(x=>{
+  if(s!=='add'&&s!=='import') activePTab=s;
+  ['ideas','planned','progress','completed','add','import'].forEach(x=>{
     $('psub-'+x).style.display = x===s?'block':'none';
-    $('ptab-'+x).classList.toggle('active', x===s);
+    if($('ptab-'+x)) $('ptab-'+x).classList.toggle('active', x===s);
   });
+  if(s==='import'){ renderImportQueue(); return; }
   if(s==='add') {
     // Only reset if NOT coming from an editProject call
     setTimeout(()=>{
@@ -3342,6 +3412,7 @@ renderToolList();
 renderInvList();
 renderResList();
 renderFAQ();
+updateImportBadge();
 // ════════════════════════════════════════════════════════════════
 // STARTUP — sync from Supabase, with one-time auto-migration from Sheets
 // ════════════════════════════════════════════════════════════════
@@ -3367,6 +3438,197 @@ async function checkMaintNotifications(){
   if(Notification.permission==='granted'){ send(); }
   else { Notification.requestPermission().then(p=>{ if(p==='granted') send(); }); }
 }
+
+// BULK PHOTO IMPORT
+const IMPORT_QUEUE_KEY = 'egcw_import_queue';
+let importSelectedUrls = new Set();
+
+function loadImportQueue(){ try{ return JSON.parse(localStorage.getItem(IMPORT_QUEUE_KEY)||'[]'); }catch(e){ return []; } }
+function saveImportQueue(q){ localStorage.setItem(IMPORT_QUEUE_KEY, JSON.stringify(q)); }
+
+function updateImportBadge(){
+  const q=loadImportQueue();
+  const badge=$('import-badge');
+  if(!badge) return;
+  if(q.length){ badge.style.display='inline'; badge.textContent=q.length; }
+  else { badge.style.display='none'; }
+}
+
+function renderImportQueue(){
+  const q=loadImportQueue();
+  updateImportBadge();
+  const qWrap=$('import-queue-wrap');
+  const upArea=$('import-upload-area');
+  if(!q.length){
+    if(qWrap) qWrap.style.display='none';
+    if(upArea) upArea.style.display='block';
+    $('import-new-form').style.display='none';
+    $('import-existing-picker').style.display='none';
+    return;
+  }
+  if(upArea) upArea.style.display='none';
+  if(qWrap) qWrap.style.display='block';
+  $('import-queue-count').textContent=q.length+' photo'+(q.length>1?'s':'')+' waiting to be assigned';
+  const grid=$('import-grid'); if(!grid) return;
+  grid.innerHTML=q.map(function(url){
+    const sel=importSelectedUrls.has(url);
+    const safeUrl=url.replace(/'/g,'%27');
+    return '<div style="position:relative;aspect-ratio:1;cursor:pointer;" onclick="importToggleSelect(''+safeUrl+'')">'
+      +'<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:2.5px solid '+(sel?'var(--accent)':'var(--border)')+';" onerror="this.parentElement.style.display='none'">'
+      +(sel?'<div style="position:absolute;top:4px;left:4px;background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">&#10003;</div>':'')
+      +'<button onclick="event.stopPropagation();importDeletePhoto(''+safeUrl+'')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>'
+      +'</div>';
+  }).join('');
+  const bar=$('import-action-bar');
+  if(bar){
+    if(importSelectedUrls.size>0){
+      bar.style.display='flex';
+      $('import-selection-count').textContent=importSelectedUrls.size+' photo'+(importSelectedUrls.size>1?'s':'')+' selected';
+    } else {
+      bar.style.display='none';
+    }
+  }
+}
+
+function importToggleSelect(url){
+  const decoded=decodeURIComponent(url);
+  if(importSelectedUrls.has(decoded)) importSelectedUrls.delete(decoded);
+  else importSelectedUrls.add(decoded);
+  renderImportQueue();
+}
+
+function importDeletePhoto(url){
+  const decoded=decodeURIComponent(url);
+  if(!confirm('Remove this photo from the queue?')) return;
+  importSelectedUrls.delete(decoded);
+  const q=loadImportQueue().filter(function(u){ return u!==decoded; });
+  saveImportQueue(q);
+  renderImportQueue();
+}
+
+async function importPhotosSelected(ev){
+  const files=Array.from(ev.target.files); if(!files.length) return;
+  ev.target.value='';
+  $('import-progress').style.display='block';
+  $('import-upload-area').style.display='none';
+  let done=0;
+  $('import-progress-msg').textContent='Uploading 0 of '+files.length+'...';
+  $('import-progress-bar').style.width='0%';
+  const q=loadImportQueue();
+  const results=await Promise.allSettled(files.map(async function(f){
+    const url=await uploadToSupabaseStorage(f);
+    done++;
+    $('import-progress-msg').textContent='Uploading '+done+' of '+files.length+'...';
+    $('import-progress-bar').style.width=Math.round(done/files.length*100)+'%';
+    return url;
+  }));
+  $('import-progress').style.display='none';
+  results.forEach(function(r){ if(r.status==='fulfilled'&&r.value) q.push(r.value); });
+  saveImportQueue(q);
+  const failed=results.filter(function(r){ return r.status==='rejected'; }).length;
+  if(failed) showStatus('Warning: '+failed+' photo'+(failed>1?'s':'')+' failed to upload','err');
+  renderImportQueue();
+}
+
+function importCreateNew(){
+  if(!importSelectedUrls.size){ showStatus('Select at least one photo first','err'); return; }
+  $('import-new-form').style.display='block';
+  $('import-existing-picker').style.display='none';
+  const prev=$('import-new-photo-preview');
+  if(prev) prev.innerHTML=[...importSelectedUrls].map(function(u){ return '<img src="'+u+'" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">'; }).join('');
+  $('imp-name').focus();
+  $('import-new-form').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function importAddToExisting(){
+  if(!importSelectedUrls.size){ showStatus('Select at least one photo first','err'); return; }
+  $('import-new-form').style.display='none';
+  $('import-existing-picker').style.display='block';
+  const prev=$('import-existing-photo-preview');
+  if(prev) prev.innerHTML=[...importSelectedUrls].map(function(u){ return '<img src="'+u+'" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">'; }).join('');
+  $('imp-proj-search').value='';
+  renderImportProjectPicker();
+  $('import-existing-picker').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderImportProjectPicker(){
+  const q=($('imp-proj-search')&&$('imp-proj-search').value||'').toLowerCase();
+  const list=projects.filter(function(p){ return !q||(p.name||'').toLowerCase().includes(q)||(p.recipient||'').toLowerCase().includes(q); });
+  const sorted=list.slice().sort(function(a,b){
+    const o={'In Progress':0,'Planned':1,'Idea':2,'Completed':3};
+    return ((o[a.status]!=null?o[a.status]:4))-(o[b.status]!=null?o[b.status]:4);
+  });
+  const BC={Idea:'badge-idea',Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
+  const el=$('import-proj-list'); if(!el) return;
+  if(!sorted.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No projects found</div>'; return; }
+  el.innerHTML=sorted.map(function(p){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="importAssignToProject(\'' + p.id + '\')">' 
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+p.name+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);">'+(p.wood?''+p.wood+' - ':'')+p.status+'</div>'
+      +'</div>'
+      +'<span class="badge '+(BC[p.status]||'')+'" style="flex-shrink:0;font-size:10px;">'+p.status+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+async function importSaveNewProject(){
+  const name=gv('imp-name'); if(!name){ showStatus('Enter a project name','err'); return; }
+  const urls=[...importSelectedUrls];
+  const p={
+    id:genId(), ts:Date.now(),
+    name:name, desc:gv('imp-desc'), wood:gv('imp-wood'), dims:'',
+    status:gv('imp-status')||'Completed',
+    madeFor:gv('imp-for')||'Self', recipient:gv('imp-recipient')||'',
+    driveLinks:urls, driveLink:urls[0]||'',
+    lessons:'', tags:[], notes:'', priority:'', sourceUrl:'', nextSteps:'',
+    tools:'', toolNotes:''
+  };
+  projects.push(p); saveLocal();
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),
+    name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,
+    lessons:'',madeFor:p.madeFor,recipient:p.recipient,
+    driveLink:urls.join(' | '),tools:'',toolNotes:'',tags:'',notes:'',
+    priority:'',sourceUrl:'',nextSteps:''});
+  const remaining=loadImportQueue().filter(function(u){ return !importSelectedUrls.has(u); });
+  saveImportQueue(remaining);
+  importSelectedUrls.clear();
+  ['imp-name','imp-desc','imp-wood','imp-recipient'].forEach(function(id){ const e=$(id); if(e) e.value=''; });
+  if($('imp-status')) $('imp-status').value='Completed';
+  if($('imp-for')) $('imp-for').value='Self';
+  $('import-new-form').style.display='none';
+  showStatus('Project saved!','ok');
+  renderImportQueue();
+  updateImportBadge();
+}
+
+async function importAssignToProject(projId){
+  const p=projects.find(function(x){ return x.id===projId; }); if(!p) return;
+  const newLinks=[...importSelectedUrls];
+  const existing=p.driveLinks||[p.driveLink].filter(Boolean);
+  p.driveLinks=[...existing,...newLinks];
+  p.driveLink=p.driveLinks[0]||'';
+  saveLocal();
+  toSheet({action:'save',sheet:'Projects',id:p.id,timestamp:new Date(p.ts).toISOString(),
+    name:p.name,description:p.desc,wood:p.wood,dimensions:p.dims,status:p.status,
+    lessons:p.lessons||'',madeFor:p.madeFor,recipient:p.recipient,
+    driveLink:p.driveLinks.join(' | '),tools:p.tools,toolNotes:p.toolNotes,
+    tags:(p.tags||[]).join(', '),notes:p.notes,priority:p.priority||'',
+    sourceUrl:p.sourceUrl||'',nextSteps:p.nextSteps||''});
+  const remaining=loadImportQueue().filter(function(u){ return !importSelectedUrls.has(u); });
+  saveImportQueue(remaining);
+  importSelectedUrls.clear();
+  $('import-existing-picker').style.display='none';
+  showStatus('Photos added to '+p.name,'ok');
+  renderImportQueue();
+  updateImportBadge();
+}
+
+function importCancelForm(){
+  $('import-new-form').style.display='none';
+  $('import-existing-picker').style.display='none';
+}
+
 async function startupSync() {
   try {
     await syncFromSupabase();
