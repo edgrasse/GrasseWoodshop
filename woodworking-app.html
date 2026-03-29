@@ -330,7 +330,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <button class="sub-tab"        onclick="showPTab('completed')" id="ptab-completed">✅ Done</button>
     <button class="sub-tab"        onclick="showPTab('add')"       id="ptab-add">➕ Add</button>
   </div>
-  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists();if(!this.value.trim()){showPTab(activePTab);}"></div>
+  <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="srch-projects" placeholder="Search projects..." oninput="renderAllPLists();if(!this.value.trim()){const el=$('psub-search');if(el)el.style.display='none';showPTab(activePTab);}"></div>
 
   <div id="psub-planned" style="display:none;">
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
@@ -379,6 +379,8 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     </div>
     <div id="plist-completed"></div>
   </div>
+
+  <div id="psub-search" style="display:none;"></div>
 
   <div id="psub-add" style="display:none;">
     <div class="card">
@@ -1772,19 +1774,73 @@ function toggleResFilter(el){
 // RENDER PROJECT LISTS
 // ════════════════════════════════════════════════════════════════
 function renderAllPLists(){
-  ['ideas','planned','progress','completed'].forEach(renderPList);
   const q=(document.getElementById('srch-projects')?.value||'').trim();
   if(q){
-    // Show all content divs so results across all statuses are visible
-    ['ideas','planned','progress','completed'].forEach(x=>{
-      const el=$('psub-'+x); if(el) el.style.display='block';
+    // Unified search view — hide all tab panes, show single results div
+    ['ideas','planned','progress','completed','add'].forEach(x=>{
+      const el=$('psub-'+x); if(el) el.style.display='none';
     });
-    // Dim tab buttons to indicate "all" mode
     ['ideas','planned','progress','completed'].forEach(x=>{
       const btn=$('ptab-'+x); if(btn) btn.classList.remove('active');
     });
+    // Gather all matching projects across all statuses
+    const ql=q.toLowerCase();
+    const matched=projects.filter(p=>
+      (p.name||'').toLowerCase().includes(ql)||
+      (p.recipient||'').toLowerCase().includes(ql)||
+      (p.desc||'').toLowerCase().includes(ql)||
+      (p.tags||[]).some(t=>t.toLowerCase().includes(ql))
+    ).slice().sort((a,b)=>{
+      const order={'In Progress':0,'Planned':1,'Idea':2,'Completed':3};
+      return (order[a.status]??4)-(order[b.status]??4);
+    });
+    const el=$('psub-search');
+    if(!el) return;
+    el.style.display='block';
+    if(!matched.length){
+      el.innerHTML='<div class="empty-state"><div class="ei">🔍</div><p>No projects match "'+q+'"</p></div>';
+      return;
+    }
+    // Render each matched project using renderPList-style card, but inline
+    const BC={Idea:'badge-idea',Planned:'badge-planned','In Progress':'badge-progress',Completed:'badge-completed'};
+    const TC={Lathe:'ptag-lathe',Epoxy:'ptag-epoxy','Laser Etching':'ptag-laser'};
+    const PRIORITY_BADGE_LOCAL={High:'🔴 High',Medium:'🟡 Medium',Low:'🟢 Low'};
+    el.innerHTML=matched.map(p=>{
+      const allLinks=p.driveLinks||[p.driveLink].filter(Boolean);
+      const tags=(p.tags||[]).map(t=>`<span class="proj-tag ${TC[t]||'ptag-custom'}">${t}</span>`).join('');
+      const priorityBadge=p.priority&&PRIORITY_BADGE_LOCAL[p.priority]?`<span class="badge badge-priority-${p.priority.toLowerCase()}" style="font-size:10px;">${PRIORITY_BADGE_LOCAL[p.priority]}</span>`:'';
+      const type=p.status==='Idea'?'ideas':p.status==='Planned'?'planned':p.status==='In Progress'?'progress':'completed';
+      const actionBtns=type==='ideas'
+        ?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','Planned')">📋 Promote to Planned</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
+        :type==='planned'
+        ?`<button class="btn btn-green btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','In Progress')">▶ Start Project</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
+        :type==='progress'
+        ?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();moveProject('${p.id}','Completed')">✅ Mark Complete</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`
+        :`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editProject('${p.id}')">✏️ Edit</button>`;
+      return `<div class="proj-card" style="cursor:pointer;" onclick="editProject('${p.id}')">
+        <div class="proj-card-header"><div>
+          <div class="proj-card-name">${p.name}</div>
+          <div class="proj-card-meta">${p.wood?'🌳 '+p.wood:''}${p.dims?' · 📐 '+p.dims:''}${p.madeFor==='Other'&&p.recipient?'<br>🎁 For: '+p.recipient:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          ${priorityBadge}
+          <span class="badge ${BC[p.status]||''}">${p.status}</span>
+          ${menuBtn(p.id,'project')}
+        </div></div>
+        ${p.desc?`<div style="font-size:13px;color:var(--charcoal);margin-top:4px;">${p.desc}</div>`:''}
+        ${(type==='progress'&&p.nextSteps)?`<div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;padding:6px 10px;background:rgba(196,119,59,0.08);border-left:3px solid var(--accent);border-radius:4px;">▶ Next: ${p.nextSteps}</div>`:''}
+        ${tags?`<div class="proj-tags">${tags}</div>`:''}
+        ${allLinks.length?`<div style="margin-top:9px;"><div style="display:flex;flex-wrap:wrap;gap:6px;">${allLinks.map(l=>`<img src="${l}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="event.stopPropagation();openLightbox('${l}')" onerror="this.style.display='none'">`).join('')}</div></div>`:''}
+        ${p.lessons?`<div class="lessons-box"><div class="ll-label">💡 Lessons Learned</div>${p.lessons}</div>`:''}
+        <div class="proj-actions">${actionBtns}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px;">${fmtTs(p.ts)}</div>
+      </div>`;
+    }).join('');
+  } else {
+    // No search — hide search results div, render normal tab lists
+    const el=$('psub-search'); if(el) el.style.display='none';
+    ['ideas','planned','progress','completed'].forEach(renderPList);
   }
-  // When no query, visibility is controlled by showPTab — don't touch it here
 }
 
 const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2, '': 3 };
