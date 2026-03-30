@@ -3442,8 +3442,8 @@ async function checkMaintNotifications(){
 }
 
 // BULK PHOTO IMPORT
-const IMPORT_QUEUE_KEY = 'egcw_import_queue';
-let importSelectedUrls = new Set();
+var IMPORT_QUEUE_KEY = 'egcw_import_queue';
+var importSelectedUrls = new Set();
 
 function loadImportQueue(){ try{ return JSON.parse(localStorage.getItem(IMPORT_QUEUE_KEY)||'[]'); }catch(e){ return []; } }
 function saveImportQueue(q){ localStorage.setItem(IMPORT_QUEUE_KEY, JSON.stringify(q)); }
