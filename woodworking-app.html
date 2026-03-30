@@ -3649,9 +3649,16 @@ async function importRecoverFromStorage(){
       body:JSON.stringify({action:'storage-list',bucket:'workshop-photos'})
     });
     const data=await res.json();
-    if(!Array.isArray(data)){ if(statusEl) statusEl.textContent='Could not list storage files.'; return; }
+    console.log('Storage list response:', JSON.stringify(data));
+    // Supabase may return an error object or nested structure
+    const files=Array.isArray(data)?data:(Array.isArray(data?.files)?data.files:[]);
+    if(!files.length && !Array.isArray(data)){
+      if(statusEl) statusEl.textContent='Storage error: '+(data?.message||data?.error||JSON.stringify(data));
+      return;
+    }
+    const data2=files;
     // Build public URLs for all files
-    const allUrls=data.map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(f.name); });
+    const allUrls=data2.filter(function(f){ return f.name&&!f.id?.endsWith('/'); }).map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(f.name); });
     // Filter out ones already assigned to a project
     const assignedUrls=new Set();
     projects.forEach(function(p){
