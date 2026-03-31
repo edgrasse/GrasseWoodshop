@@ -395,7 +395,6 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       </div>
     </div>
     <div id="import-queue-wrap" style="display:none;margin-top:10px;">
-      <div id="import-debug-bar" style="font-size:11px;color:var(--muted);margin-bottom:6px;word-break:break-all;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span id="import-queue-count" style="font-size:13px;font-weight:600;color:var(--charcoal);"></span>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file-input').click()">+ Add More</button>
@@ -3470,11 +3469,16 @@ function renderImportQueue(){
   if(upArea) upArea.style.display='none';
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=q.length+' photo'+(q.length>1?'s':'')+' waiting to be assigned';
-  const dbg=$('import-debug-bar'); if(dbg) dbg.textContent='URL[0]: '+(q[0]||'empty');
   const grid=$('import-grid'); if(!grid){ setTimeout(renderImportQueue,200); return; }
   grid.innerHTML=q.map(function(url){
     const safeUrl=encodeURIComponent(url);
-    return '<img src="'+url+'" width="100" height="100" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;")" style="width:100px;height:100px;object-fit:cover;border-radius:8px;margin:4px;display:inline-block;cursor:pointer;">';
+    const sel=importSelectedUrls.has(url);
+    const border=sel?'3px solid var(--accent)':'3px solid transparent';
+    return '<span style="position:relative;display:inline-block;width:100px;height:100px;margin:4px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)">'
+      +'<img src="'+url+'" width="100" height="100" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:'+border+';display:block;">'
+      +(sel?'<span style="position:absolute;top:3px;left:3px;background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">&#10003;</span>':'')
+      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:20px;text-align:center;">&#x2715;</button>'
+      +'</span>';
   }).join('');
   const bar=$('import-action-bar');
   if(bar){
