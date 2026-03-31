@@ -3469,7 +3469,7 @@ function renderImportQueue(){
   if(upArea) upArea.style.display='none';
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=q.length+' photo'+(q.length>1?'s':'')+' waiting to be assigned';
-  const grid=$('import-grid'); if(!grid) return;
+  const grid=$('import-grid'); if(!grid){ console.error('import-grid not found, retrying'); setTimeout(renderImportQueue,200); return; }
   grid.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;';
   grid.innerHTML=q.map(function(url){
     const sel=importSelectedUrls.has(url);
