@@ -3470,15 +3470,15 @@ function renderImportQueue(){
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=q.length+' photo'+(q.length>1?'s':'')+' waiting to be assigned';
   const grid=$('import-grid'); if(!grid) return;
+  grid.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;';
   grid.innerHTML=q.map(function(url){
     const sel=importSelectedUrls.has(url);
     const safeUrl=encodeURIComponent(url);
-    const border=sel?'var(--accent)':'var(--border)';
-    const check=sel?'<div style="position:absolute;top:4px;left:4px;z-index:1;background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">&#10003;</div>':'';
-    return '<div style="position:relative;width:100%;height:110px;cursor:pointer;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)">'
-      +'<img src="'+url+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:8px;border:2.5px solid '+border+';" onerror="this.style.opacity=0.3">'
-      +check
-      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;)" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>'
+    const outline=sel?'3px solid var(--accent)':'3px solid transparent';
+    return '<div style="position:relative;width:100px;height:100px;flex-shrink:0;cursor:pointer;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;")>'
+      +'<img src="'+url+'" width="100" height="100" style="width:100px;height:100px;object-fit:cover;border-radius:8px;outline:'+outline+';display:block;">'
+      +(sel?'<div style="position:absolute;top:3px;left:3px;background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">&#10003;</div>':'')
+      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;")" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;">&#x2715;</button>'
       +'</div>';
   }).join('');
   const bar=$('import-action-bar');
