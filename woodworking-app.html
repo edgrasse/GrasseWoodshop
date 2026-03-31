@@ -3476,7 +3476,11 @@ async function renderImportQueue(){
     const data=await res.json();
     if(Array.isArray(data)){
       urls=data.filter(function(f){ return f.name&&f.name!=='.emptyFolderPlaceholder'; })
-               .map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name); });
+               .map(function(f){
+                 // f.name may be just 'photo.jpg' or full 'imports/photo.jpg' depending on Supabase version
+                 var fname = f.name.replace(/^imports\//,'');
+                 return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(fname);
+               });
     }
   } catch(e){ console.warn('Import list error:',e); }
   updateImportBadge(urls.length);
