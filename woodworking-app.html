@@ -1323,6 +1323,7 @@ function renderAll() {
   renderInvList();
   renderResList();
   rebuildCustomTags();
+  showPTab(activePTab);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3475,7 +3476,7 @@ async function renderImportQueue(){
     const data=await res.json();
     if(Array.isArray(data)){
       urls=data.filter(function(f){ return f.name&&f.name!=='.emptyFolderPlaceholder'; })
-               .map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent('imports/'+f.name); });
+               .map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name); });
     }
   } catch(e){ console.warn('Import list error:',e); }
   updateImportBadge(urls.length);
