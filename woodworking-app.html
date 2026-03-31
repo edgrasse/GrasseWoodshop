@@ -395,6 +395,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
       </div>
     </div>
     <div id="import-queue-wrap" style="display:none;margin-top:10px;">
+      <div id="import-debug-bar" style="font-size:11px;color:var(--muted);margin-bottom:6px;word-break:break-all;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span id="import-queue-count" style="font-size:13px;font-weight:600;color:var(--charcoal);"></span>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file-input').click()">+ Add More</button>
@@ -3469,6 +3470,7 @@ function renderImportQueue(){
   if(upArea) upArea.style.display='none';
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=q.length+' photo'+(q.length>1?'s':'')+' waiting to be assigned';
+  const dbg=$('import-debug-bar'); if(dbg) dbg.textContent='URL[0]: '+(q[0]||'empty');
   const grid=$('import-grid'); if(!grid){ console.error('import-grid not found, retrying'); setTimeout(renderImportQueue,200); return; }
   grid.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;';
   grid.innerHTML=q.map(function(url){
