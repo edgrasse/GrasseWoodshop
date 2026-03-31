@@ -1254,10 +1254,10 @@ async function toSheet(p) {
 // ════════════════════════════════════════════════════════════════
 // SUPABASE STORAGE — photo upload
 // ════════════════════════════════════════════════════════════════
-async function uploadToSupabaseStorage(file) {
+async function uploadToSupabaseStorage(file, folder='projects') {
   const b64 = await imageFileToJpegB64(file);
   const ext = 'jpg';
-  const fileName = `photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+  const fileName = `${folder}/photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
   const res = await fetch(WORKER_URL + '/storage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1529,7 +1529,7 @@ async function updateTool(id) {
   if(!hasSched){ maintSchedule=''; maintIntervalDays=0; }
   let driveLink = existing.driveLink||'';
   if(window._saveToolPhotoOnCreate && window._pendingToolPhotoFile){
-    try{ showStatus('⏳ Uploading photo...',''); driveLink=await uploadToSupabaseStorage(window._pendingToolPhotoFile); }catch(e){ console.warn('Photo upload failed:',e); }
+    try{ showStatus('⏳ Uploading photo...',''); driveLink=await uploadToSupabaseStorage(window._pendingToolPhotoFile,'tools'); }catch(e){ console.warn('Photo upload failed:',e); }
     window._pendingToolPhotoFile=null; window._saveToolPhotoOnCreate=false;
   }
   tools[idx]={...existing, cat:gv('t-category'),name,brand:gv('t-brand'),model:gv('t-model'),serial:gv('t-serial'),date:gv('t-date'),price:gv('t-price'),location:loc,manual:gv('t-manual'),condition:gv('t-condition'),notes:gv('t-notes'),driveLink,maintSchedule,maintIntervalDays};
@@ -1574,7 +1574,7 @@ async function updateInvItem(id) {
   if(window._saveInvPhotoOnCreate && window._pendingInvPhotoFile) {
     try {
       showStatus('⏳ Uploading photo...','');
-      driveLink = await uploadToSupabaseStorage(window._pendingInvPhotoFile);
+      driveLink = await uploadToSupabaseStorage(window._pendingInvPhotoFile,'supplies');
     } catch(e) { console.warn('Photo upload failed:', e); }
     window._pendingInvPhotoFile = null; window._saveInvPhotoOnCreate = false;
   }
@@ -2083,7 +2083,7 @@ async function saveProject(){
     const stat=$('p-photo-upload-status');
     if(stat) stat.innerHTML='<span class="spinner dark"></span> Uploading photos...';
     try {
-      const uploaded = await Promise.all(projFiles.map(f => uploadToSupabaseStorage(f)));
+      const uploaded = await Promise.all(projFiles.map(f => uploadToSupabaseStorage(f,'projects')));
       // Inject uploaded URLs into the link inputs
       uploaded.forEach(url => {
         const empty = Array.from(document.querySelectorAll('.p-drive-link-input')).find(el => !el.value.trim());
@@ -2379,7 +2379,7 @@ async function saveTool(){
   if(window._saveToolPhotoOnCreate && window._pendingToolPhoto) {
     try {
       showStatus('⏳ Uploading photo...','');
-      driveLink = await uploadToSupabaseStorage(window._pendingToolPhoto.file);
+      driveLink = await uploadToSupabaseStorage(window._pendingToolPhoto.file,'tools');
     } catch(e) { console.warn('Photo upload failed:', e); }
     window._pendingToolPhoto = null; window._saveToolPhotoOnCreate = false;
   }
@@ -2699,7 +2699,7 @@ async function saveInvItem(){
   if(window._saveInvPhotoOnCreate && window._pendingInvPhotoFile) {
     try {
       showStatus('⏳ Uploading photo...','');
-      photoUrl = await uploadToSupabaseStorage(window._pendingInvPhotoFile);
+      photoUrl = await uploadToSupabaseStorage(window._pendingInvPhotoFile,'supplies');
     } catch(e) { console.warn('Photo upload failed:', e); }
     window._pendingInvPhotoFile = null; window._saveInvPhotoOnCreate = false;
   }
@@ -3517,7 +3517,7 @@ async function importPhotosSelected(ev){
   $('import-progress-bar').style.width='0%';
   const q=loadImportQueue();
   const results=await Promise.allSettled(files.map(async function(f){
-    const url=await uploadToSupabaseStorage(f);
+    const url=await uploadToSupabaseStorage(f,'imports');
     done++;
     $('import-progress-msg').textContent='Uploading '+done+' of '+files.length+'...';
     $('import-progress-bar').style.width=Math.round(done/files.length*100)+'%';
