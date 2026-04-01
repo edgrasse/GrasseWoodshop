@@ -3470,21 +3470,29 @@ async function renderImportQueue(){
   if(grid) grid.innerHTML='<span style="font-size:12px;color:var(--muted);">Loading...</span>';
   // Fetch imports folder from Supabase Storage via Worker
   let urls=[];
+  let _debugMsg='';
   try {
     const res=await fetch(WORKER_URL+'/supabase',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'storage-list',bucket:'workshop-photos',prefix:'imports/'})
     });
-    const data=await res.json();
+    const rawText=await res.text();
+    _debugMsg='HTTP '+res.status+' raw: '+rawText.substring(0,200);
+    let data;
+    try{ data=JSON.parse(rawText); }catch(pe){ _debugMsg+=' [JSON parse error: '+pe.message+']'; }
     if(Array.isArray(data)){
+      _debugMsg='Got '+data.length+' items. First: '+(data[0]?JSON.stringify(data[0]).substring(0,100):'none');
       urls=data.filter(function(f){ return f.name&&f.name!=='.emptyFolderPlaceholder'; })
                .map(function(f){
-                 // f.name may be just 'photo.jpg' or full 'imports/photo.jpg' depending on Supabase version
                  var fname = f.name.replace(/^imports\//,'');
                  return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(fname);
                });
+    } else {
+      _debugMsg+=' [not an array, got: '+typeof data+']';
     }
-  } catch(e){ console.warn('Import list error:',e); }
+  } catch(e){ _debugMsg='Fetch error: '+e.message; }
+  // Show debug info in grid
+  if(grid) grid.innerHTML='<div style="font-size:10px;color:red;word-break:break-all;padding:4px;">DEBUG: '+_debugMsg+'</div>';
   updateImportBadge(urls.length);
   if(!urls.length){
     if(qWrap) qWrap.style.display='none';

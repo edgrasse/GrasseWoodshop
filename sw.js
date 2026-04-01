@@ -2,7 +2,7 @@
 // Strategy: network-first for the app HTML, cache-first for fonts/static assets.
 // Bump CACHE_VERSION with every deploy to invalidate old caches immediately.
 
-const CACHE_VERSION = 'egcw-v13';
+const CACHE_VERSION = 'egcw-v14';
 const APP_SHELL = [
   '/GrasseWoodshop/woodworking-app.html',
 ];
