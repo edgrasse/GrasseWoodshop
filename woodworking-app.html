@@ -3491,12 +3491,15 @@ async function renderImportQueue(){
       _debugMsg+=' [not an array, got: '+typeof data+']';
     }
   } catch(e){ _debugMsg='Fetch error: '+e.message; }
-  // Show debug info in grid
-  if(grid) grid.innerHTML='<div style="font-size:10px;color:red;word-break:break-all;padding:4px;">DEBUG: '+_debugMsg+'</div>';
   updateImportBadge(urls.length);
   if(!urls.length){
     if(qWrap) qWrap.style.display='none';
     if(upArea) upArea.style.display='block';
+    // Show debug below upload area
+    var dbgEl=$('import-debug-msg');
+    if(!dbgEl){ dbgEl=document.createElement('div'); dbgEl.id='import-debug-msg'; upArea.parentNode.insertBefore(dbgEl,upArea.nextSibling); }
+    dbgEl.style.cssText='font-size:10px;color:red;word-break:break-all;padding:4px;margin-top:4px;';
+    dbgEl.textContent='DEBUG: '+_debugMsg;
     $('import-new-form').style.display='none';
     $('import-existing-picker').style.display='none';
     return;
