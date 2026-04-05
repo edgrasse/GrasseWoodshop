@@ -3641,7 +3641,7 @@ async function importSaveNewProject(){
     if(!fileName) return;
     const decoded=decodeURIComponent(fileName);
     const newName=decoded.replace('imports/','projects/');
-    const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(newName);
+    const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+newName.split('/').map(encodeURIComponent).join('/');
     try {
       const moveRes=await fetch(WORKER_URL+'/supabase',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -3701,7 +3701,7 @@ async function importAssignToProject(projId){
     if(!fileName) return;
     const decoded=decodeURIComponent(fileName);
     const newName=decoded.replace('imports/','projects/');
-    const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(newName);
+    const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+newName.split('/').map(encodeURIComponent).join('/');
     try {
       const moveRes2=await fetch(WORKER_URL+'/supabase',{
         method:'POST',headers:{'Content-Type':'application/json'},
