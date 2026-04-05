@@ -3461,62 +3461,80 @@ function updateImportBadge(count){
 }
 
 async function renderImportQueue(){
-  if(renderImportQueue._running) return;
-  renderImportQueue._running = true;
-  const qWrap=$('import-queue-wrap');
-  const upArea=$('import-upload-area');
-  const grid=$('import-grid');
+  // Fully self-contained: fetch files, build UI from scratch each call
+  // Find elements
+  const qWrap = $('import-queue-wrap');
+  const upArea = $('import-upload-area');
+
   // Show loading state
-  if(qWrap) qWrap.style.display='block';
-  if(upArea) upArea.style.display='none';
-  if(grid) grid.innerHTML='<span style="font-size:12px;color:var(--muted);">Loading...</span>';
-  // Fetch imports folder from Supabase Storage via Worker
-  let urls=[];
+  if(qWrap) qWrap.style.display = 'block';
+  if(upArea) upArea.style.display = 'none';
+  const countEl = $('import-queue-count');
+  const gridEl  = $('import-grid');
+  if(countEl) countEl.textContent = 'Loading photos...';
+  if(gridEl)  gridEl.innerHTML = '';
+
+  // Fetch list from Worker
+  let files = [];
   try {
-    const res=await fetch(WORKER_URL+'/supabase',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'storage-list',bucket:'workshop-photos',prefix:'imports/'})
+    const res  = await fetch(WORKER_URL+'/supabase', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'storage-list', bucket:'workshop-photos', prefix:'imports/'})
     });
-    const data=await res.json();
+    const data = await res.json();
     if(Array.isArray(data)){
-      urls=data.filter(function(f){ return f.name&&f.name!=='.emptyFolderPlaceholder'; })
-               .map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name); });
+      files = data.filter(function(f){ return f.name && f.name !== '.emptyFolderPlaceholder'; });
     }
-  } catch(e){ console.warn('Import list error:',e); }
-  updateImportBadge(urls.length);
-  if(!urls.length){
-    if(qWrap) qWrap.style.display='none';
-    if(upArea) upArea.style.display='block';
-    $('import-new-form').style.display='none';
-    $('import-existing-picker').style.display='none';
-    renderImportQueue._running = false;
+  } catch(e){ console.warn('Import list error:', e); }
+
+  updateImportBadge(files.length);
+
+  if(!files.length){
+    if(qWrap)  qWrap.style.display  = 'none';
+    if(upArea) upArea.style.display = 'block';
+    $('import-new-form').style.display      = 'none';
+    $('import-existing-picker').style.display = 'none';
     return;
   }
-  if(upArea) upArea.style.display='none';
-  if(qWrap) qWrap.style.display='block';
-  $('import-queue-count').textContent=urls.length+' photo'+(urls.length>1?'s':'')+' waiting to be assigned';
-  const grid2=$('import-grid');
-  if(!grid2){ renderImportQueue._running=false; setTimeout(renderImportQueue,200); return; }
-  grid2.innerHTML=urls.map(function(url){
-    const safeUrl=encodeURIComponent(url);
-    const sel=importSelectedUrls.has(url);
-    const border=sel?'3px solid var(--accent)':'3px solid transparent';
-    return '<span style="position:relative;display:inline-block;width:100px;height:100px;margin:4px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)">'
-      +'<img src="'+url+'" width="100" height="100" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:'+border+';display:block;">'
-      +(sel?'<span style="position:absolute;top:3px;left:3px;background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">&#10003;</span>':'')
-      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:20px;text-align:center;">&#x2715;</button>'
-      +'</span>';
-  }).join('');
-  const bar=$('import-action-bar');
+
+  // Build URLs
+  const urls = files.map(function(f){
+    return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name);
+  });
+
+  if(qWrap)  qWrap.style.display  = 'block';
+  if(upArea) upArea.style.display = 'none';
+  if(countEl) countEl.textContent = urls.length+' photo'+(urls.length!==1?'s':'')+' waiting to be assigned';
+
+  // Build grid HTML using table-free inline-block tiles (iOS-safe)
+  if(gridEl){
+    var html = '<div style="display:block;margin-bottom:8px;">';
+    for(var i=0;i<urls.length;i++){
+      var url = urls[i];
+      var safe = encodeURIComponent(url);
+      var sel  = importSelectedUrls.has(url);
+      var bdr  = sel ? '3px solid #C4773B' : '3px solid transparent';
+      html += '<span style="position:relative;display:inline-block;width:96px;height:96px;margin:3px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(''+safe+'')">'
+            + '<img src="'+url+'" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:'+bdr+';display:block;" loading="lazy">'
+            + (sel ? '<span style="position:absolute;top:3px;left:3px;background:#C4773B;color:white;border-radius:50%;width:20px;height:20px;font-size:13px;font-weight:700;line-height:20px;text-align:center;display:block;">✓</span>' : '')
+            + '<button onclick="event.stopPropagation();importDeletePhoto(''+safe+'')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:20px;text-align:center;">✕</button>'
+            + '</span>';
+    }
+    html += '</div>';
+    gridEl.innerHTML = html;
+  }
+
+  // Action bar
+  const bar = $('import-action-bar');
   if(bar){
-    if(importSelectedUrls.size>0){
-      bar.style.display='flex';
-      $('import-selection-count').textContent=importSelectedUrls.size+' photo'+(importSelectedUrls.size>1?'s':'')+' selected';
+    if(importSelectedUrls.size > 0){
+      bar.style.display = 'flex';
+      const selCount = $('import-selection-count');
+      if(selCount) selCount.textContent = importSelectedUrls.size+' photo'+(importSelectedUrls.size!==1?'s':'')+' selected';
     } else {
-      bar.style.display='none';
+      bar.style.display = 'none';
     }
   }
-  renderImportQueue._running = false;
 }
 
 function importToggleSelect(url){
