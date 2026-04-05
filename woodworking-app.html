@@ -1650,17 +1650,12 @@ function showPTab(s) {
     $('psub-'+x).style.display = x===s?'block':'none';
     if($('ptab-'+x)) $('ptab-'+x).classList.toggle('active', x===s);
   });
-  // Force none->block transition so iOS Safari always repaints the active panel
-  const activePanel = $('psub-'+s);
-  if(activePanel){
-    activePanel.style.display = 'none';
-    void activePanel.offsetHeight;
-    activePanel.style.display = 'block';
-    void activePanel.offsetHeight;
+  // Defer all rendering until after iOS Safari has processed the display changes
+  if(s==='import'){
+    setTimeout(renderImportQueue, 50);
+    return;
   }
-  if(s==='import'){ renderImportQueue(); return; }
   if(s==='add') {
-    // Only reset if NOT coming from an editProject call
     setTimeout(()=>{
       if(!gv('p-edit-id')) {
         selToolIds = [];
@@ -1669,8 +1664,10 @@ function showPTab(s) {
       }
       renderToolChips();
       rebuildCustomTags();
-    }, 0);
-  } else renderAllPLists();
+    }, 50);
+  } else {
+    setTimeout(renderAllPLists, 50);
+  }
 }
 
 function showSTab(s) {
