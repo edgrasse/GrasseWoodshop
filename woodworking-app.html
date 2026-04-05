@@ -360,7 +360,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div id="plist-ideas"></div>
   </div>
 
-  <div id="psub-progress" style="display:none;">
+  <div id="psub-progress" style="display:block;">
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="progress" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="progress" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -399,7 +399,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
         </div>
       </div>
     </div>
-    <div id="import-queue-wrap" style="display:none;margin-top:10px;">
+    <div id="import-queue-wrap" style="display:block;margin-top:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span id="import-queue-count" style="font-size:13px;font-weight:600;color:var(--charcoal);"></span>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file-input').click()">+ Add More</button>
@@ -1158,16 +1158,7 @@ async function syncFromSupabase() {
     saveLocal();
     showSyncBanners('done');
     renderAll();
-    // Hard panel reset: force iOS Safari to discard cached blank layout
-    setTimeout(()=>{
-      const panel = $('psub-'+activePTab);
-      if(panel){
-        panel.style.display='none';
-        void panel.offsetHeight;
-        panel.style.display='block';
-        void panel.offsetHeight;
-      }
-    }, 100);
+
     checkMaintNotifications();
   } catch(e) {
     showSyncBanners('error');
@@ -1659,9 +1650,14 @@ function showPTab(s) {
     $('psub-'+x).style.display = x===s?'block':'none';
     if($('ptab-'+x)) $('ptab-'+x).classList.toggle('active', x===s);
   });
-  // Force reflow so iOS Safari registers the display change before innerHTML writes
+  // Force none->block transition so iOS Safari always repaints the active panel
   const activePanel = $('psub-'+s);
-  if(activePanel) void activePanel.offsetHeight;
+  if(activePanel){
+    activePanel.style.display = 'none';
+    void activePanel.offsetHeight;
+    activePanel.style.display = 'block';
+    void activePanel.offsetHeight;
+  }
   if(s==='import'){ renderImportQueue(); return; }
   if(s==='add') {
     // Only reset if NOT coming from an editProject call
@@ -3473,18 +3469,9 @@ function updateImportBadge(count){
 }
 
 async function renderImportQueue(){
-  // Fully self-contained: fetch files, build UI from scratch each call
-  // Find elements
-  const qWrap = $('import-queue-wrap');
   const upArea = $('import-upload-area');
-
-  // Show loading state
-  if(qWrap) qWrap.style.display = 'block';
-  if(upArea) upArea.style.display = 'none';
   const countEl = $('import-queue-count');
   const gridEl  = $('import-grid');
-  if(countEl) countEl.textContent = 'Loading photos...';
-  if(gridEl)  gridEl.innerHTML = '';
 
   // Fetch list from Worker
   let files = [];
@@ -3502,10 +3489,13 @@ async function renderImportQueue(){
   updateImportBadge(files.length);
 
   if(!files.length){
-    if(qWrap)  qWrap.style.display  = 'none';
     if(upArea) upArea.style.display = 'block';
+    if(countEl) countEl.textContent = '';
+    if(gridEl) gridEl.innerHTML = '';
     $('import-new-form').style.display      = 'none';
     $('import-existing-picker').style.display = 'none';
+    const bar = $('import-action-bar');
+    if(bar) bar.style.display = 'none';
     return;
   }
 
@@ -3514,14 +3504,10 @@ async function renderImportQueue(){
     return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name);
   });
 
-  if(qWrap)  qWrap.style.display  = 'block';
   if(upArea) upArea.style.display = 'none';
   if(countEl) countEl.textContent = urls.length+' photo'+(urls.length!==1?'s':'')+' waiting to be assigned';
 
-  // Force reflow so iOS Safari renders the newly-visible container before innerHTML write
-  if(qWrap) void qWrap.offsetHeight;
-
-  // Build grid HTML using table-free inline-block tiles (iOS-safe)
+  // Build grid HTML - write directly, no display toggling needed
   if(gridEl){
     var html = '<div style="display:block;margin-bottom:8px;">';
     for(var i=0;i<urls.length;i++){
@@ -3536,7 +3522,7 @@ async function renderImportQueue(){
             + '</span>';
     }
     html += '</div>';
-    requestAnimationFrame(function(){ gridEl.innerHTML = html; });
+    gridEl.innerHTML = html;
   }
 
   // Action bar
