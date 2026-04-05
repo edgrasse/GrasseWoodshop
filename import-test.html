@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Import Debug Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:monospace;padding:16px;background:#f5f5f5;}
+pre{background:white;padding:12px;border-radius:8px;overflow-x:auto;font-size:11px;white-space:pre-wrap;word-break:break-all;}
+img{width:80px;height:80px;object-fit:cover;border:2px solid #ccc;border-radius:6px;margin:4px;}
+.status{padding:8px 12px;border-radius:6px;margin:8px 0;font-weight:bold;}
+.ok{background:#d4edda;color:#155724;}
+.err{background:#f8d7da;color:#721c24;}
+h3{margin-top:20px;}
+</style>
+</head>
+<body>
+<h2>🔍 Import Folder Debug</h2>
+<p>This page tests the Worker storage-list call and shows exactly what comes back.</p>
+<button onclick="runTest()" style="padding:10px 20px;font-size:16px;background:#C4773B;color:white;border:none;border-radius:8px;cursor:pointer;">▶ Run Test</button>
+
+<div id="output"></div>
+
+<script>
+const WORKER_URL = 'https://egcw-proxy.ed-53c.workers.dev';
+const SUPABASE_URL = 'https://boousgzchnrrhrlyhday.supabase.co';
+
+async function runTest(){
+  const out = document.getElementById('output');
+  out.innerHTML = '<div class="status ok">Running...</div>';
+  
+  try {
+    // Step 1: Call Worker
+    out.innerHTML += '<h3>Step 1: Worker storage-list call</h3>';
+    const res = await fetch(WORKER_URL+'/supabase', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'storage-list', bucket:'workshop-photos', prefix:'imports/'})
+    });
+    
+    out.innerHTML += '<div class="status '+(res.ok?'ok':'err')+'">HTTP '+res.status+'</div>';
+    
+    const data = await res.json();
+    out.innerHTML += '<h3>Step 2: Raw response (first 3 items)</h3>';
+    out.innerHTML += '<pre>'+JSON.stringify(data.slice?data.slice(0,3):data, null, 2)+'</pre>';
+    out.innerHTML += '<div class="status ok">Total items returned: '+(Array.isArray(data)?data.length:'NOT AN ARRAY - got: '+typeof data)+'</div>';
+    
+    if(!Array.isArray(data) || !data.length){
+      out.innerHTML += '<div class="status err">No files returned!</div>';
+      return;
+    }
+    
+    // Step 3: Show what name field contains
+    out.innerHTML += '<h3>Step 3: name field values (first 5)</h3>';
+    out.innerHTML += '<pre>'+data.slice(0,5).map(f=>'name: '+JSON.stringify(f.name)).join('\n')+'</pre>';
+    
+    // Step 4: Build URLs both ways and test
+    const f0 = data.filter(f=>f.name && f.name!=='.emptyFolderPlaceholder')[0];
+    if(!f0){ out.innerHTML += '<div class="status err">No valid files found</div>'; return; }
+    
+    const urlWithPrefix = SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f0.name);
+    const urlFullPath   = SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(f0.name);
+    const urlDirect     = SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+f0.name;
+    
+    out.innerHTML += '<h3>Step 4: URL tests for first file</h3>';
+    out.innerHTML += '<pre>File name field: '+f0.name+'\n\nURL A (name prefixed as imports/): '+urlWithPrefix+'\nURL B (name used as full path):    '+urlFullPath+'\nURL C (name unencoded):             '+urlDirect+'</pre>';
+    
+    out.innerHTML += '<h3>Step 5: Image load test - which URL works?</h3>';
+    out.innerHTML += '<p><b>URL A</b> (current code):</p>';
+    out.innerHTML += '<img src="'+urlWithPrefix+'" onerror="this.style.border=\'3px solid red\';this.alt=\'BROKEN\'" onload="this.style.border=\'3px solid green\'">';
+    out.innerHTML += '<p><b>URL B</b> (full path):</p>';
+    out.innerHTML += '<img src="'+urlFullPath+'" onerror="this.style.border=\'3px solid red\';this.alt=\'BROKEN\'" onload="this.style.border=\'3px solid green\'">';
+    out.innerHTML += '<p><b>URL C</b> (unencoded):</p>';
+    out.innerHTML += '<img src="'+urlDirect+'" onerror="this.style.border=\'3px solid red\';this.alt=\'BROKEN\'" onload="this.style.border=\'3px solid green\'">';
+    
+    // Step 6: Show first 6 images using current URL pattern
+    out.innerHTML += '<h3>Step 6: First 6 images (current URL pattern)</h3>';
+    const valid = data.filter(f=>f.name&&f.name!=='.emptyFolderPlaceholder').slice(0,6);
+    valid.forEach(f=>{
+      const url = SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name);
+      out.innerHTML += '<img src="'+url+'" onerror="this.style.border=\'3px solid red\'" onload="this.style.border=\'3px solid green\'">';
+    });
+    
+  } catch(e) {
+    out.innerHTML += '<div class="status err">ERROR: '+e.message+'</div>';
+  }
+}
+</script>
+</body>
+</html>
