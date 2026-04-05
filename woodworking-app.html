@@ -1651,6 +1651,9 @@ function showPTab(s) {
     $('psub-'+x).style.display = x===s?'block':'none';
     if($('ptab-'+x)) $('ptab-'+x).classList.toggle('active', x===s);
   });
+  // Force reflow so iOS Safari registers the display change before innerHTML writes
+  const activePanel = $('psub-'+s);
+  if(activePanel) void activePanel.offsetHeight;
   if(s==='import'){ renderImportQueue(); return; }
   if(s==='add') {
     // Only reset if NOT coming from an editProject call
@@ -1972,9 +1975,10 @@ function renderPList(type){
     filtered = filtered.slice().sort((a,b)=>(PRIORITY_ORDER[a.priority||'']??3)-(PRIORITY_ORDER[b.priority||'']??3));
   }
   const cont=$(cfg.cont);
-  if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; return; }
+  if(!filtered.length){ cont.innerHTML=`<div class="empty-state"><div class="ei">${cfg.icon}</div><p>${cfg.msg}</p></div>`; void cont.offsetHeight; return; }
   // Compact view
   const compactKey='projViewCompact_'+type;
+  void cont.offsetHeight;
   if(window[compactKey]){
     const PCOLORS={'High':'#dc3545','Medium':'#f0ad4e','Low':'#28a745'};
     cont.innerHTML='<div class="card" style="padding:8px 13px;">'+filtered.map(p=>`
@@ -3505,6 +3509,9 @@ async function renderImportQueue(){
   if(qWrap)  qWrap.style.display  = 'block';
   if(upArea) upArea.style.display = 'none';
   if(countEl) countEl.textContent = urls.length+' photo'+(urls.length!==1?'s':'')+' waiting to be assigned';
+
+  // Force reflow so iOS Safari renders the newly-visible container before innerHTML write
+  if(qWrap) void qWrap.offsetHeight;
 
   // Build grid HTML using table-free inline-block tiles (iOS-safe)
   if(gridEl){
