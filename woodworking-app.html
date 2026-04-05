@@ -1158,8 +1158,16 @@ async function syncFromSupabase() {
     saveLocal();
     showSyncBanners('done');
     renderAll();
-    // Explicit delayed showPTab ensures iOS Safari repaints the active project tab after data loads
-    setTimeout(()=>showPTab(activePTab), 50);
+    // Hard panel reset: force iOS Safari to discard cached blank layout
+    setTimeout(()=>{
+      const panel = $('psub-'+activePTab);
+      if(panel){
+        panel.style.display='none';
+        void panel.offsetHeight;
+        panel.style.display='block';
+        void panel.offsetHeight;
+      }
+    }, 100);
     checkMaintNotifications();
   } catch(e) {
     showSyncBanners('error');
@@ -3528,7 +3536,7 @@ async function renderImportQueue(){
             + '</span>';
     }
     html += '</div>';
-    gridEl.innerHTML = html;
+    requestAnimationFrame(function(){ gridEl.innerHTML = html; });
   }
 
   // Action bar
