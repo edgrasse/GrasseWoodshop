@@ -3639,11 +3639,17 @@ async function importSaveNewProject(){
     const newName=decoded.replace('imports/','projects/');
     const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(newName);
     try {
-      await fetch(WORKER_URL+'/supabase',{
+      const moveRes=await fetch(WORKER_URL+'/supabase',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:'storage-move',bucket:'workshop-photos',from:decoded,to:newName})
       });
-      movedUrls.push(newUrl);
+      const moveData=await moveRes.json();
+      if(moveRes.ok && moveData.status==='ok'){
+        movedUrls.push(newUrl);
+      } else {
+        console.warn('Move failed:',moveData);
+        movedUrls.push(url); // keep original URL if move failed
+      }
     } catch(e){ console.warn('Move error:',e); movedUrls.push(url); }
   }));
   const finalUrls=movedUrls.length?movedUrls:urls;
@@ -3693,11 +3699,17 @@ async function importAssignToProject(projId){
     const newName=decoded.replace('imports/','projects/');
     const newUrl=SUPABASE_URL+'/storage/v1/object/public/workshop-photos/'+encodeURIComponent(newName);
     try {
-      await fetch(WORKER_URL+'/supabase',{
+      const moveRes2=await fetch(WORKER_URL+'/supabase',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:'storage-move',bucket:'workshop-photos',from:decoded,to:newName})
       });
-      movedUrls.push(newUrl);
+      const moveData2=await moveRes2.json();
+      if(moveRes2.ok && moveData2.status==='ok'){
+        movedUrls.push(newUrl);
+      } else {
+        console.warn('Move failed:',moveData2);
+        movedUrls.push(url);
+      }
     } catch(e){ console.warn('Move error:',e); movedUrls.push(url); }
   }));
   // Update project links to point to new location
