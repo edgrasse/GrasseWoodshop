@@ -1158,6 +1158,8 @@ async function syncFromSupabase() {
     saveLocal();
     showSyncBanners('done');
     renderAll();
+    // Explicit delayed showPTab ensures iOS Safari repaints the active project tab after data loads
+    setTimeout(()=>showPTab(activePTab), 50);
     checkMaintNotifications();
   } catch(e) {
     showSyncBanners('error');
@@ -1661,7 +1663,7 @@ function showPTab(s) {
       renderToolChips();
       rebuildCustomTags();
     }, 0);
-  } else { setTimeout(()=>renderAllPLists(), 0); }
+  } else renderAllPLists();
 }
 
 function showSTab(s) {
@@ -3490,8 +3492,9 @@ async function renderImportQueue(){
   if(upArea) upArea.style.display='none';
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=urls.length+' photo'+(urls.length>1?'s':'')+' waiting to be assigned';
-  if(!grid){ setTimeout(renderImportQueue,200); return; }
-  grid.innerHTML=urls.map(function(url){
+  const grid2=$('import-grid');
+  if(!grid2){ setTimeout(renderImportQueue,200); return; }
+  grid2.innerHTML=urls.map(function(url){
     const safeUrl=encodeURIComponent(url);
     const sel=importSelectedUrls.has(url);
     const border=sel?'3px solid var(--accent)':'3px solid transparent';
