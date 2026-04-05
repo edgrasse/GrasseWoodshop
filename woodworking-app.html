@@ -13,14 +13,8 @@
           // Check for updates every time the app loads
           reg.update();
           // When a new SW takes over, reload to get fresh content
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'activated') {
-                window.location.reload();
-              }
-            });
-          });
+          // Don't auto-reload - let user continue working
+          // reg.addEventListener('updatefound', ...) removed to prevent mid-session reloads
         })
         .catch(err => console.warn('SW registration failed:', err));
     });
@@ -3514,9 +3508,9 @@ async function renderImportQueue(){
       var safe = encodeURIComponent(url);
       var sel  = importSelectedUrls.has(url);
       var bdr  = sel ? '3px solid #C4773B' : '3px solid transparent';
-      html += '<span style="position:relative;display:inline-block;width:96px;height:96px;margin:3px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(&quot;'+safe+'&quot;)">'
+      html += '<span data-url="'+safe+'" style="position:relative;display:inline-block;width:96px;height:96px;margin:3px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(&quot;'+safe+'&quot;)">'
             + '<img src="'+url+'" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:'+bdr+';display:block;" loading="lazy">'
-            + (sel ? '<span style="position:absolute;top:3px;left:3px;background:#C4773B;color:white;border-radius:50%;width:20px;height:20px;font-size:13px;font-weight:700;line-height:20px;text-align:center;display:block;">✓</span>' : '')
+            + '<span class="import-check" style="position:absolute;top:3px;left:3px;background:#C4773B;color:white;border-radius:50%;width:20px;height:20px;font-size:13px;font-weight:700;line-height:20px;text-align:center;display:'+(sel?'block':'none')+';">&#10003;</span>'
             + '<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safe+'&quot;)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:20px;text-align:center;">&#x2715;</button>'
             + '</span>';
     }
@@ -3539,9 +3533,34 @@ async function renderImportQueue(){
 
 function importToggleSelect(url){
   const decoded=decodeURIComponent(url);
-  if(importSelectedUrls.has(decoded)) importSelectedUrls.delete(decoded);
-  else importSelectedUrls.add(decoded);
-  renderImportQueue();
+  if(importSelectedUrls.has(decoded)){
+    importSelectedUrls.delete(decoded);
+  } else {
+    importSelectedUrls.add(decoded);
+  }
+  // Update visual state in-place without re-fetching
+  const gridEl = $('import-grid');
+  if(gridEl){
+    gridEl.querySelectorAll('span[data-url]').forEach(function(span){
+      const spanUrl = decodeURIComponent(span.dataset.url);
+      const sel = importSelectedUrls.has(spanUrl);
+      const img = span.querySelector('img');
+      if(img) img.style.border = sel ? '3px solid #C4773B' : '3px solid transparent';
+      const check = span.querySelector('.import-check');
+      if(check) check.style.display = sel ? 'block' : 'none';
+    });
+  }
+  // Update action bar
+  const bar = $('import-action-bar');
+  if(bar){
+    if(importSelectedUrls.size > 0){
+      bar.style.display = 'flex';
+      const selCount = $('import-selection-count');
+      if(selCount) selCount.textContent = importSelectedUrls.size+' photo'+(importSelectedUrls.size!==1?'s':'')+' selected';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
 }
 
 async function importDeletePhoto(url){
@@ -3677,8 +3696,9 @@ async function importSaveNewProject(){
   if($('imp-status')) $('imp-status').value='Completed';
   if($('imp-for')) $('imp-for').value='Self';
   $('import-new-form').style.display='none';
-  showStatus('Project saved!','ok');
-  showPTab('progress');
+  showStatus('Project saved! ✅','ok');
+  importSelectedUrls.clear();
+  setTimeout(renderImportQueue, 50);
 }
 
 async function importAssignToProject(projId){
@@ -3728,8 +3748,10 @@ async function importAssignToProject(projId){
     sourceUrl:p.sourceUrl||'',nextSteps:p.nextSteps||''});
   importSelectedUrls.clear();
   $('import-existing-picker').style.display='none';
-  showStatus('Photos added to '+p.name,'ok');
-  showPTab('progress');
+  showStatus('Photos added to '+p.name+' ✅','ok');
+  importSelectedUrls.clear();
+  $('import-existing-picker').style.display='none';
+  setTimeout(renderImportQueue, 50);
 }
 
 function importCancelForm(){
