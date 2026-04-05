@@ -1158,8 +1158,6 @@ async function syncFromSupabase() {
     saveLocal();
     showSyncBanners('done');
     renderAll();
-    // Re-display the active project sub-tab so cards appear after data loads
-    if(typeof showPTab === 'function') showPTab(activePTab);
     checkMaintNotifications();
   } catch(e) {
     showSyncBanners('error');
@@ -1663,7 +1661,7 @@ function showPTab(s) {
       renderToolChips();
       rebuildCustomTags();
     }, 0);
-  } else renderAllPLists();
+  } else { setTimeout(()=>renderAllPLists(), 0); }
 }
 
 function showSTab(s) {
@@ -3470,36 +3468,21 @@ async function renderImportQueue(){
   if(grid) grid.innerHTML='<span style="font-size:12px;color:var(--muted);">Loading...</span>';
   // Fetch imports folder from Supabase Storage via Worker
   let urls=[];
-  let _debugMsg='';
   try {
     const res=await fetch(WORKER_URL+'/supabase',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'storage-list',bucket:'workshop-photos',prefix:'imports/'})
     });
-    const rawText=await res.text();
-    _debugMsg='HTTP '+res.status+' raw: '+rawText.substring(0,200);
-    let data;
-    try{ data=JSON.parse(rawText); }catch(pe){ _debugMsg+=' [JSON parse error: '+pe.message+']'; }
+    const data=await res.json();
     if(Array.isArray(data)){
-      _debugMsg='Got '+data.length+' items. First: '+(data[0]?JSON.stringify(data[0]).substring(0,100):'none');
       urls=data.filter(function(f){ return f.name&&f.name!=='.emptyFolderPlaceholder'; })
-               .map(function(f){
-                 var fname = f.name.replace(/^imports\//,'');
-                 return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(fname);
-               });
-    } else {
-      _debugMsg+=' [not an array, got: '+typeof data+']';
+               .map(function(f){ return SUPABASE_URL+'/storage/v1/object/public/workshop-photos/imports/'+encodeURIComponent(f.name); });
     }
-  } catch(e){ _debugMsg='Fetch error: '+e.message; }
+  } catch(e){ console.warn('Import list error:',e); }
   updateImportBadge(urls.length);
   if(!urls.length){
     if(qWrap) qWrap.style.display='none';
     if(upArea) upArea.style.display='block';
-    // Show debug below upload area
-    var dbgEl=$('import-debug-msg');
-    if(!dbgEl){ dbgEl=document.createElement('div'); dbgEl.id='import-debug-msg'; upArea.parentNode.insertBefore(dbgEl,upArea.nextSibling); }
-    dbgEl.style.cssText='font-size:10px;color:red;word-break:break-all;padding:4px;margin-top:4px;';
-    dbgEl.textContent='DEBUG: '+_debugMsg;
     $('import-new-form').style.display='none';
     $('import-existing-picker').style.display='none';
     return;
@@ -3511,11 +3494,12 @@ async function renderImportQueue(){
   grid.innerHTML=urls.map(function(url){
     const safeUrl=encodeURIComponent(url);
     const sel=importSelectedUrls.has(url);
-    const selStyle=sel?'border:3px solid var(--accent);':'border:3px solid transparent;';
-    return '<img src="'+url+'" width="100" height="100" '
-      +'style="display:inline-block;width:100px;height:100px;object-fit:cover;border-radius:8px;margin:4px;cursor:pointer;vertical-align:top;'+selStyle+'" '
-      +'onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)" '
-      +'onerror="this.style.opacity=0.3">';
+    const border=sel?'3px solid var(--accent)':'3px solid transparent';
+    return '<span style="position:relative;display:inline-block;width:100px;height:100px;margin:4px;cursor:pointer;vertical-align:top;" onclick="importToggleSelect(&quot;'+safeUrl+'&quot;)">'
+      +'<img src="'+url+'" width="100" height="100" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:'+border+';display:block;">'
+      +(sel?'<span style="position:absolute;top:3px;left:3px;background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">&#10003;</span>':'')
+      +'<button onclick="event.stopPropagation();importDeletePhoto(&quot;'+safeUrl+'&quot;)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:20px;text-align:center;">&#x2715;</button>'
+      +'</span>';
   }).join('');
   const bar=$('import-action-bar');
   if(bar){
