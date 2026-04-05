@@ -360,7 +360,7 @@ input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); cu
     <div id="plist-ideas"></div>
   </div>
 
-  <div id="psub-progress" style="display:block;">
+  <div id="psub-progress" style="display:none;">
     <div class="filter-chips">
       <span class="filter-chip" data-f="Lathe"         data-list="progress" onclick="toggleFilter(this)">🪵 Lathe</span>
       <span class="filter-chip" data-f="Epoxy"         data-list="progress" onclick="toggleFilter(this)">🔵 Epoxy</span>
@@ -1639,7 +1639,7 @@ function showTab(t) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   $('section-'+t).classList.add('active');
   $('tab-'+t).classList.add('active');
-  if(t==='projects')  { renderToolChips(); renderAllPLists(); showPTab('progress'); }
+  if(t==='projects')  { renderToolChips(); showPTab('progress'); }
   if(t==='shop')      { renderToolList(); renderInvList(); }
   if(t==='resources') { populateProjectDropdown(); renderResList(); }
   if(t==='faq')       { renderFAQ(); }
@@ -3415,7 +3415,7 @@ loadLocal();
 setAddType('tool');
 rebuildCustomTags();
 renderToolChips();
-renderAllPLists(); showPTab('progress');
+showPTab('progress');
 renderToolList();
 renderInvList();
 renderResList();
@@ -3461,6 +3461,8 @@ function updateImportBadge(count){
 }
 
 async function renderImportQueue(){
+  if(renderImportQueue._running) return;
+  renderImportQueue._running = true;
   const qWrap=$('import-queue-wrap');
   const upArea=$('import-upload-area');
   const grid=$('import-grid');
@@ -3487,13 +3489,14 @@ async function renderImportQueue(){
     if(upArea) upArea.style.display='block';
     $('import-new-form').style.display='none';
     $('import-existing-picker').style.display='none';
+    renderImportQueue._running = false;
     return;
   }
   if(upArea) upArea.style.display='none';
   if(qWrap) qWrap.style.display='block';
   $('import-queue-count').textContent=urls.length+' photo'+(urls.length>1?'s':'')+' waiting to be assigned';
   const grid2=$('import-grid');
-  if(!grid2){ setTimeout(renderImportQueue,200); return; }
+  if(!grid2){ renderImportQueue._running=false; setTimeout(renderImportQueue,200); return; }
   grid2.innerHTML=urls.map(function(url){
     const safeUrl=encodeURIComponent(url);
     const sel=importSelectedUrls.has(url);
@@ -3513,6 +3516,7 @@ async function renderImportQueue(){
       bar.style.display='none';
     }
   }
+  renderImportQueue._running = false;
 }
 
 function importToggleSelect(url){
