@@ -2,7 +2,8 @@
 // Strategy: network-first for the app HTML, cache-first for fonts/static assets.
 // Bump CACHE_VERSION with every deploy to invalidate old caches immediately.
 
-const CACHE_VERSION = 'egcw-v15';
+const CACHE_VERSION = 'egcw-v10';
+const IMAGE_CACHE = 'egcw-images-v1';
 const APP_SHELL = [
   '/GrasseWoodshop/woodworking-app.html',
 ];
@@ -21,7 +22,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE_VERSION && k !== IMAGE_CACHE).map(k => caches.delete(k))
       )
     )
   );
@@ -32,6 +33,23 @@ self.addEventListener('activate', event => {
 // ── Fetch: network-first for HTML, cache-first for everything else ─
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+
+  // Cache Supabase Storage images (cache-first, long-lived)
+  const isSupabaseStorage = url.hostname.endsWith('supabase.co') && url.pathname.includes('/storage/v1/object/public/');
+  if (isSupabaseStorage) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) return cached;
+          return fetch(event.request).then(response => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          });
+        })
+      )
+    );
+    return;
+  }
 
   // Only handle same-origin requests and Google Fonts
   const isSameOrigin = url.origin === self.location.origin;
