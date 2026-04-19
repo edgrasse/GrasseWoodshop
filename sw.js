@@ -1,43 +1,85 @@
-// sw.js — MyBFF Donation Tracker Service Worker
-// v5.5-DEV — iOS-optimized: HTML always network-first, never cached
-const CACHE_VERSION = "mybff-v5.5-DEV-Apr19-2026";
-const CACHE_NAME = `mybff-cache-${CACHE_VERSION}`;
+// EG Custom Woodworking — Service Worker
+// Strategy: network-first for the app HTML, cache-first for fonts/static assets.
+// Bump CACHE_VERSION with every deploy to invalidate old caches immediately.
 
-self.addEventListener("install", event => {
-  self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then(() => {}));
-});
+const CACHE_VERSION = 'egcw-v10';
+const IMAGE_CACHE = 'egcw-images-v1';
+const APP_SHELL = [
+  '/GrasseWoodshop/woodworking-app.html',
+];
 
-self.addEventListener("activate", event => {
+// ── Install: pre-cache the app shell ──────────────────────────────
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.open(CACHE_VERSION).then(cache => cache.addAll(APP_SHELL))
   );
+  // Take over immediately — don't wait for old SW to finish
+  self.skipWaiting();
 });
 
-self.addEventListener("fetch", event => {
+// ── Activate: delete all old caches ───────────────────────────────
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== CACHE_VERSION && k !== IMAGE_CACHE).map(k => caches.delete(k))
+      )
+    )
+  );
+  // Claim all open tabs immediately
+  self.clients.claim();
+});
+
+// ── Fetch: network-first for HTML, cache-first for everything else ─
+self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  const isHTML = url.pathname.endsWith(".html") || url.pathname === "/";
-  const isSameOrigin = url.origin === self.location.origin;
-  if (!isSameOrigin) return;
-  if (isHTML) {
+
+  // Cache Supabase Storage images (cache-first, long-lived)
+  const isSupabaseStorage = url.hostname.endsWith('supabase.co') && url.pathname.includes('/storage/v1/object/public/');
+  if (isSupabaseStorage) {
     event.respondWith(
-      fetch(event.request, { cache: "no-store" })
+      caches.open(IMAGE_CACHE).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) return cached;
+          return fetch(event.request).then(response => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          });
+        })
+      )
+    );
+    return;
+  }
+
+  // Only handle same-origin requests and Google Fonts
+  const isSameOrigin = url.origin === self.location.origin;
+  const isFonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  if (!isSameOrigin && !isFonts) return;
+
+  // Network-first for the main HTML file
+  if (url.pathname.endsWith('woodworking-app.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => {
+          // Cache the fresh response
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          return response;
+        })
         .catch(() => caches.match(event.request))
     );
-  } else {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
-          return response;
-        });
-      })
-    );
+    return;
   }
+
+  // Cache-first for fonts and other static assets
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+        return response;
+      });
+    })
+  );
 });
