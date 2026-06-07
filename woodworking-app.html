@@ -2291,7 +2291,7 @@ async function scanToolPhoto(ev){
     const res=await fetch(WORKER_URL,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:500,
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,
         messages:[{role:"user",content:[
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
           {type:"text",text:'Identify this woodworking tool, jig, or its label sticker. Return ONLY a JSON object (no markdown, no explanation):\n{"name":"","brand":"","model":"","serial":"","category":"","notes":""}\nCategory must be one of: Power Tools, Hand Tools, Jigs, Measuring & Layout, Finishing, Clamps & Workholding, Safety, Other\nIf this appears to be a jig (shop-made fixture), set category to "Jigs" and describe what it does and how it is used in the "notes" field.\nIf you cannot read a field clearly, leave it as empty string.'}
@@ -2349,7 +2349,7 @@ Return ONLY valid JSON in this exact format, no markdown, no extra text:
 interval_days should be the recommended number of days between formal service checks (typically 30–180).
 schedule_text should be concise bullet points using \\n between items. Be specific to this tool model if known.`;
 
-    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:600,messages:[{role:"user",content:prompt}]})});
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt}]})});
     const d=await res.json();
     const raw=(d.content?.[0]?.text||'').trim();
     let parsed;
@@ -2640,7 +2640,7 @@ async function scanInvPhoto(ev) {
   try {
     const b64 = await imageFileToJpegB64(file);
     const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:300,
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:300,
         messages:[{ role:'user', content:[
           { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 }},
           { type:'text', text:`Identify this workshop supply, consumable, or accessory. Return ONLY JSON:\n{"name":"","category":"","location":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nLocation: only fill if you can clearly see a storage location label/tag, otherwise leave empty.\nName should be specific, e.g. "1-1/4 inch Brad Nails" or "220 Grit Sandpaper Sheets". No markdown.` }
@@ -2688,7 +2688,7 @@ async function scanInvUrl() {
   stat.innerHTML = '<span class="spinner dark"></span> Reading product page...';
   try {
     const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:400,
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:400,
         tools:[{ type:'web_search_20250305', name:'web_search' }],
         messages:[{ role:'user', content:`Look up this product URL and identify what it is as a woodworking shop supply or consumable: ${url}\n\nReturn ONLY a JSON object (no markdown):\n{"name":"","category":""}\nCategory must be one of: ${INV_CATS.join(', ')}\nName should be specific with size/spec if available, e.g. "1-1/4 inch Brad Nails 1000-pack" or "220 Grit Sandpaper Sheets 50-pack".` }]
       })
@@ -2881,7 +2881,7 @@ async function bulkScanSingle(file, loc){
   $('bulk-results').prepend(el);
   try {
     const b64=await imageFileToJpegB64(file);
-    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:'Identify this woodworking tool. ONLY JSON:\n{"name":"","brand":"","model":"","serial":"","category":"","condition":""}\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service'}]}]})});
     const d=await res.json(), p=JSON.parse(d.content?.[0]?.text?.replace(/```json|```/g,'').trim()||'{}');
     el.innerHTML=`<img src="${dataUrl}" style="width:100%;max-height:110px;object-fit:cover;border-radius:7px;margin-bottom:8px;">
       <div style="font-weight:600;font-size:14px;margin-bottom:3px;">${p.name||'Unknown Tool'}</div>
@@ -2900,7 +2900,7 @@ async function bulkScanSet(file, loc){
   $('bulk-results').prepend(el);
   try {
     const b64=await imageFileToJpegB64(file);
-    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,messages:[{role:"user",content:[
+    const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:[
       {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
       {type:"text",text:`You are looking at a photo of multiple woodworking tools or a tool set. Identify every individual item you can see. Return ONLY a JSON array (no markdown):\n[{"name":"","brand":"","category":"","condition":""},...]\nCategory: Power Tools/Hand Tools/Measuring & Layout/Finishing/Clamps & Workholding/Safety/Other\nCondition: Excellent/Good/Fair/Needs Service\nFor sets like drill bits or chisels, list each size/type individually if visible, or as a set if sizes are not clear.\nReturn ONLY the JSON array.`}
     ]}]})});
@@ -3186,7 +3186,7 @@ async function _doSend(msg, b64, mime){
 
   try {
     const res=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1200,system:buildSystemPrompt(),messages:chatHistory})});
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,system:buildSystemPrompt(),messages:chatHistory})});
     const d=await res.json();
     $('ld')?.remove();
     const reply=d.content?.[0]?.text||'Sorry, no response. Try again.';
